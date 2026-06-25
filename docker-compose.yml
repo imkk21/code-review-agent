@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: code-review-agent
+    ports:
+      - "8081:8081"
+    environment:
+      # Inject workspace env configurations
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+      - GITHUB_APP_ID=${GITHUB_APP_ID}
+      - GITHUB_PRIVATE_KEY=${GITHUB_PRIVATE_KEY}
+    volumes:
+      # Persistent local mapping for database and logs
+      - ./code_memory.db:/app/code_memory.db
+      - ./review_history.json:/app/review_history.json
+      - ./slack_notifications.log:/app/slack_notifications.log
+      - ./github_comments.log:/app/github_comments.log
+    restart: always

@@ -1,0 +1,2524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Apex AI is an autonomous, high-fidelity developer code review engine powered by Gemini. Inspect vulnerabilities, bugs, and performance details with direct inline code annotation.">
+    <title>Apex AI | Autonomous Code Review Workspace</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #030712;
+            --sidebar-bg: #090d16;
+            --card-bg: rgba(17, 24, 39, 0.45);
+            --card-border: rgba(255, 255, 255, 0.05);
+            --card-border-hover: rgba(99, 102, 241, 0.25);
+            
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --text-muted: #6b7280;
+            --text-muted-dark: #374151;
+            
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --primary-glow: rgba(99, 102, 241, 0.12);
+            --primary-grad: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            
+            --success: #10b981;
+            --success-bg: rgba(16, 185, 129, 0.06);
+            --success-border: rgba(16, 185, 129, 0.15);
+            
+            --warning: #f59e0b;
+            --warning-bg: rgba(245, 158, 11, 0.06);
+            --warning-border: rgba(245, 158, 11, 0.15);
+            
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.06);
+            --danger-border: rgba(239, 68, 68, 0.15);
+            
+            --info: #3b82f6;
+            --info-bg: rgba(59, 130, 246, 0.06);
+            --info-border: rgba(59, 130, 246, 0.15);
+            
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-heading: 'Outfit', sans-serif;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            position: relative;
+        }
+
+        /* Glassmorphic Ambient Glow Spheres */
+        .glow-bg-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .glow-bg-1 {
+            position: absolute;
+            top: -10%;
+            left: 20%;
+            width: 50vw;
+            height: 50vw;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, rgba(99, 102, 241, 0) 70%);
+            filter: blur(80px);
+            animation: floatGlow1 25s infinite alternate ease-in-out;
+        }
+
+        .glow-bg-2 {
+            position: absolute;
+            bottom: -10%;
+            right: 10%;
+            width: 45vw;
+            height: 45vw;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, rgba(168, 85, 247, 0) 70%);
+            filter: blur(60px);
+            animation: floatGlow2 20s infinite alternate ease-in-out;
+        }
+
+        @keyframes floatGlow1 {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(8%, 10%) scale(1.1); }
+        }
+
+        @keyframes floatGlow2 {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(-10%, -5%) scale(0.9); }
+        }
+
+        /* App Shell Layout */
+        .app-shell {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+            z-index: 2;
+            overflow: hidden;
+        }
+
+        /* Sidebar Styling */
+        .app-sidebar {
+            width: 280px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            padding: 1.75rem 1.25rem;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            margin-bottom: 2.5rem;
+            padding-left: 0.5rem;
+        }
+
+        .brand-logo {
+            width: 2.5rem;
+            height: 2.5rem;
+            background: var(--primary-grad);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .brand-logo svg {
+            width: 1.35rem;
+            height: 1.35rem;
+            stroke: white;
+            fill: none;
+            stroke-width: 2.5px;
+        }
+
+        .brand-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand-title {
+            font-family: var(--font-heading);
+            font-size: 1.35rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, #ffffff, #c7d2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-subtitle {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .sidebar-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            flex: 1;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.85rem 1rem;
+            color: var(--text-secondary);
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid transparent;
+            text-decoration: none;
+        }
+
+        .menu-item svg {
+            width: 1.15rem;
+            height: 1.15rem;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2px;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-primary);
+        }
+
+        .menu-item.active {
+            background: var(--primary-glow);
+            color: var(--primary);
+            border-color: rgba(99, 102, 241, 0.15);
+            font-weight: 600;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            border-top: 1px solid var(--card-border);
+            padding-top: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .status-badge {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            padding: 0.5rem 0.85rem;
+            border-radius: 6px;
+            background: rgba(16, 185, 129, 0.04);
+            border: 1px solid rgba(16, 185, 129, 0.15);
+            color: var(--success);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .pulse-dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            background-color: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.4; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.4; }
+        }
+
+        /* Main Workspace */
+        .app-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            background: radial-gradient(circle at top left, rgba(17, 24, 39, 0.2), transparent);
+        }
+
+        .app-header {
+            height: 5rem;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2.5rem;
+            flex-shrink: 0;
+            background: rgba(3, 7, 18, 0.35);
+            backdrop-filter: blur(12px);
+            z-index: 9;
+        }
+
+        .header-title-group h1 {
+            font-family: var(--font-heading);
+            font-size: 1.45rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+        }
+
+        .header-title-group p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        /* Scrollable Panels */
+        .view-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2.25rem 2.5rem;
+            position: relative;
+        }
+
+        .view-panel {
+            display: none;
+            animation: panelFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .view-panel.active {
+            display: block;
+        }
+
+        @keyframes panelFadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Buttons & Forms */
+        .btn {
+            background: var(--primary-grad);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-family: var(--font-sans);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-secondary);
+            border: 1px solid var(--card-border);
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: none;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+
+        .input-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .form-select, .form-input {
+            background: rgba(10, 15, 30, 0.8);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            padding: 0.65rem 0.95rem;
+            font-size: 0.85rem;
+            font-family: var(--font-sans);
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .form-select:focus, .form-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 12px rgba(99, 102, 241, 0.15);
+        }
+
+        /* Metrics grid and Cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.25rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(12px);
+            border-radius: 14px;
+            padding: 1.5rem;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            border-color: var(--card-border-hover);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .card-icon {
+            width: 1.85rem;
+            height: 1.85rem;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+        }
+
+        .card-icon svg {
+            width: 1rem;
+            height: 1rem;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2px;
+        }
+
+        .card-value {
+            font-size: 2.15rem;
+            font-weight: 800;
+            font-family: var(--font-heading);
+            background: linear-gradient(to right, #ffffff, #e2e8f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.25rem;
+        }
+
+        .card-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Card-specific accent glow effects */
+        .card.glow-indigo::after, .card.glow-amber::after, .card.glow-rose::after, .card.glow-emerald::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+        }
+        .card.glow-indigo::after { background: var(--primary-grad); }
+        .card.glow-amber::after { background: linear-gradient(90deg, #f59e0b, #d97706); }
+        .card.glow-rose::after { background: linear-gradient(90deg, #ef4444, #b91c1c); }
+        .card.glow-emerald::after { background: linear-gradient(90deg, #10b981, #047857); }
+
+        /* Sparkline styling */
+        .sparkline-container {
+            width: 70px;
+            height: 25px;
+        }
+
+        /* Overview Page Specific Grid */
+        .overview-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (min-width: 1024px) {
+            .overview-grid {
+                grid-template-columns: 1.6fr 1.1fr;
+            }
+        }
+
+        /* Charts styling */
+        .charts-container-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 640px) {
+            .charts-container-row {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .chart-card {
+            display: flex;
+            flex-direction: column;
+            height: 310px;
+        }
+
+        .chart-card-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1.25rem;
+            font-family: var(--font-heading);
+            border-left: 3px solid var(--primary);
+            padding-left: 0.65rem;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            width: 100%;
+            height: calc(100% - 2.5rem);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Activity timeline */
+        .activity-card {
+            display: flex;
+            flex-direction: column;
+            max-height: 480px;
+        }
+
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow-y: auto;
+            padding-right: 0.25rem;
+        }
+
+        .activity-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 0.85rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+        }
+
+        .activity-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .activity-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .activity-file {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            word-break: break-all;
+        }
+
+        .activity-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        /* Quick Start Actions */
+        .quickstart-card {
+            margin-top: 1.5rem;
+        }
+
+        .quick-files-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .quick-file-btn {
+            background: rgba(10, 15, 30, 0.6);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .quick-file-btn:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+            color: var(--text-primary);
+        }
+
+        .quick-file-btn svg {
+            width: 0.9rem;
+            height: 0.9rem;
+            stroke: currentColor;
+            fill: none;
+            opacity: 0.6;
+            transition: all 0.2s ease;
+        }
+
+        .quick-file-btn:hover svg {
+            opacity: 1;
+            transform: translateX(2px);
+        }
+
+        /* Review Console Playground Grid */
+        .playground-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        @media (min-width: 1024px) {
+            .playground-grid {
+                grid-template-columns: 320px 1fr;
+            }
+        }
+
+        .console-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .console-log-card {
+            background: #03060d;
+            border: 1px solid #1e293b;
+            border-radius: 10px;
+            padding: 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: #38bdf8;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            overflow-y: auto;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.7);
+        }
+
+        .console-line {
+            display: flex;
+            gap: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .console-time {
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        .console-text {
+            word-break: break-all;
+        }
+
+        .console-text.info { color: #38bdf8; }
+        .console-text.success { color: #34d399; }
+        .console-text.warning { color: #fbbf24; }
+        .console-text.error { color: #f87171; }
+
+        /* Workspace IDE Panel */
+        .workspace-ide {
+            display: flex;
+            flex-direction: column;
+            min-height: 600px;
+            background: #0b0f19;
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+        }
+
+        .ide-header {
+            background: #070a12;
+            border-bottom: 1px solid var(--card-border);
+            padding: 0.85rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .ide-file-info {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+        }
+
+        .ide-file-icon {
+            color: #38bdf8;
+            display: flex;
+            align-items: center;
+        }
+
+        .ide-file-icon svg {
+            width: 1.1rem;
+            height: 1.1rem;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2px;
+        }
+
+        .ide-file-path {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .ide-file-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+        }
+
+        .ide-empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 2rem;
+            text-align: center;
+            gap: 1.25rem;
+            background: radial-gradient(circle at center, rgba(99, 102, 241, 0.03), transparent 70%);
+        }
+
+        .ide-empty-icon {
+            width: 4rem;
+            height: 4rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ide-empty-icon svg {
+            width: 2rem;
+            height: 2rem;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.5px;
+        }
+
+        .ide-empty-state h3 {
+            font-family: var(--font-heading);
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .ide-empty-state p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            max-width: 320px;
+            margin: 0 auto;
+        }
+
+        /* Skeleton loader */
+        .ide-loading-state {
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+            flex: 1;
+        }
+
+        .skeleton-line {
+            height: 14px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .skeleton-line::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
+            transform: translateX(-100%);
+            animation: skeletonLoading 1.5s infinite;
+        }
+
+        @keyframes skeletonLoading {
+            100% { transform: translateX(100%); }
+        }
+
+        /* IDE Code Lines Container */
+        .ide-code-container {
+            flex: 1;
+            overflow: auto;
+            background: #07090e;
+            padding: 1rem 0;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            line-height: 1.55;
+            position: relative;
+        }
+
+        .code-row {
+            display: flex;
+            width: 100%;
+            transition: background 0.15s ease;
+        }
+
+        .code-row:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .code-row.line-has-finding {
+            background: rgba(99, 102, 241, 0.03);
+        }
+
+        .code-row.line-has-finding-critical {
+            background: rgba(239, 68, 68, 0.03);
+        }
+
+        .line-num-cell {
+            width: 48px;
+            color: var(--text-muted-dark);
+            text-align: right;
+            padding-right: 1.25rem;
+            user-select: none;
+            border-right: 1px solid rgba(255, 255, 255, 0.02);
+            flex-shrink: 0;
+        }
+
+        .code-row.line-has-finding .line-num-cell {
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .code-row.line-has-finding-critical .line-num-cell {
+            color: var(--danger);
+            font-weight: bold;
+        }
+
+        .line-content-cell {
+            padding-left: 1.25rem;
+            white-space: pre;
+            color: #c9d1d9;
+            flex-grow: 1;
+        }
+
+        /* Inline Finding Annotation Comment */
+        .inline-finding-row {
+            background: #0a0e17;
+            border-top: 1px solid var(--card-border);
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            width: 100%;
+        }
+
+        .inline-finding-indicator-col {
+            width: 48px;
+            border-right: 1px solid rgba(255, 255, 255, 0.02);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 1.25rem;
+            position: relative;
+        }
+
+        .inline-finding-indicator-col::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            left: -1px;
+        }
+
+        .inline-finding-row.critical .inline-finding-indicator-col::after { background-color: var(--danger); }
+        .inline-finding-row.warning .inline-finding-indicator-col::after { background-color: var(--warning); }
+        .inline-finding-row.info .inline-finding-indicator-col::after { background-color: var(--info); }
+        .inline-finding-row.style .inline-finding-indicator-col::after { background-color: var(--primary); }
+
+        .inline-finding-card-cell {
+            padding: 1.25rem 1.5rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+        }
+
+        .inline-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .inline-tag-group {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+        }
+
+        .severity-badge {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            padding: 0.2rem 0.55rem;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            letter-spacing: 0.02em;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .severity-badge.critical { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+        .severity-badge.warning { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
+        .severity-badge.info { background: var(--info-bg); color: var(--info); border: 1px solid var(--info-border); }
+        .severity-badge.style { background: var(--primary-glow); color: var(--primary); border: 1px solid rgba(99,102,241,0.2); }
+
+        .category-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .line-label {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .inline-finding-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+        }
+
+        .inline-finding-exp {
+            font-size: 0.825rem;
+            color: var(--text-secondary);
+            line-height: 1.55;
+            font-family: var(--font-sans);
+        }
+
+        /* IDE Diffs */
+        .inline-diff-block {
+            background: #030508;
+            border: 1px solid #181d28;
+            border-radius: 8px;
+            font-family: var(--font-mono);
+            font-size: 0.725rem;
+            overflow: hidden;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
+        }
+
+        .inline-diff-header {
+            padding: 0.45rem 0.95rem;
+            background: #06090e;
+            color: var(--text-muted);
+            font-size: 0.65rem;
+            border-bottom: 1px solid #181d28;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .inline-diff-lines {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .diff-row {
+            padding: 0.45rem 0.95rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            display: flex;
+            gap: 0.75rem;
+            border-left: 3px solid transparent;
+        }
+
+        .diff-row-removed {
+            background: rgba(239, 68, 68, 0.05);
+            color: #fca5a5;
+            border-left-color: var(--danger);
+        }
+
+        .diff-row-added {
+            background: rgba(16, 185, 129, 0.05);
+            color: #6ee7b7;
+            border-left-color: var(--success);
+        }
+
+        .diff-sign {
+            user-select: none;
+            width: 10px;
+            opacity: 0.6;
+        }
+
+        .diff-code {
+            flex-grow: 1;
+        }
+
+        /* Inline Action Row */
+        .inline-action-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(255,255,255,0.03);
+            margin-top: 0.25rem;
+        }
+
+        .inline-action-label {
+            font-size: 0.725rem;
+            color: var(--text-muted);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .inline-action-label svg {
+            width: 0.9rem;
+            height: 0.9rem;
+            stroke: currentColor;
+            fill: none;
+        }
+
+        .inline-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-feedback {
+            background: transparent;
+            font-size: 0.725rem;
+            font-weight: 600;
+            padding: 0.35rem 0.85rem;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            border: 1px solid var(--card-border);
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+            font-family: var(--font-sans);
+        }
+
+        .btn-feedback svg {
+            width: 0.8rem;
+            height: 0.8rem;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2.5px;
+        }
+
+        .btn-accept:hover, .btn-accept.active {
+            background-color: var(--success-bg);
+            color: var(--success);
+            border-color: var(--success);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
+        }
+
+        .btn-dismiss:hover, .btn-dismiss.active {
+            background-color: var(--danger-bg);
+            color: var(--danger);
+            border-color: var(--danger);
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.1);
+        }
+
+        .btn-accept.active, .btn-dismiss.active {
+            font-weight: 700;
+        }
+
+        .inline-finding-row.dismissed {
+            opacity: 0.4;
+        }
+
+        /* Ledger table layout */
+        .ledger-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ledger-filter-bar {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+            background: rgba(10, 15, 30, 0.2);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .filters-left {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: center;
+            flex-grow: 1;
+            max-width: 750px;
+        }
+
+        .search-input-wrapper {
+            position: relative;
+            flex-grow: 1;
+            min-width: 220px;
+        }
+
+        .search-input-wrapper svg {
+            position: absolute;
+            left: 0.85rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0.95rem;
+            height: 0.95rem;
+            stroke: var(--text-muted);
+            fill: none;
+        }
+
+        .search-input-wrapper .form-input {
+            padding-left: 2.25rem;
+            width: 100%;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            width: 100%;
+        }
+
+        .ledger-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .ledger-table th {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+            background: rgba(0, 0, 0, 0.15);
+        }
+
+        .ledger-table td {
+            padding: 1.1rem 1.5rem;
+            font-size: 0.85rem;
+            border-bottom: 1px solid var(--card-border);
+            color: var(--text-secondary);
+        }
+
+        .ledger-table tr {
+            transition: all 0.2s ease;
+            border-bottom: 1px solid transparent;
+        }
+
+        .ledger-table tr:hover {
+            background-color: rgba(255, 255, 255, 0.012);
+        }
+
+        .td-mono {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .td-file {
+            font-weight: 600;
+            color: var(--text-primary);
+            word-break: break-all;
+        }
+
+        .badge {
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .badge-findings { background: rgba(245, 158, 11, 0.06); color: var(--warning); border: 1px solid rgba(245,158,11,0.15); }
+        .badge-clean { background: rgba(16, 185, 129, 0.06); color: var(--success); border: 1px solid rgba(16,185,129,0.15); }
+
+        .btn-inspect {
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.8rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: all 0.2s ease;
+            font-family: var(--font-sans);
+        }
+
+        .btn-inspect:hover {
+            color: #818cf8;
+            transform: translateX(3px);
+        }
+
+        .btn-inspect svg {
+            width: 0.85rem;
+            height: 0.85rem;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2.5px;
+            transition: transform 0.2s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Ambient Glow blobs -->
+    <div class="glow-bg-container">
+        <div class="glow-bg-1"></div>
+        <div class="glow-bg-2"></div>
+    </div>
+
+    <!-- App Shell Wrapper -->
+    <div class="app-shell">
+        
+        <!-- Sidebar -->
+        <aside class="app-sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-logo">
+                    <svg viewBox="0 0 24 24">
+                        <polyline points="16 18 22 12 16 6"></polyline>
+                        <polyline points="8 6 2 12 8 18"></polyline>
+                    </svg>
+                </div>
+                <div class="brand-info">
+                    <span class="brand-title">Apex AI</span>
+                    <span class="brand-subtitle">Review Workspace</span>
+                </div>
+            </div>
+
+            <!-- Navigation menu -->
+            <nav class="sidebar-menu">
+                <a href="#overview" id="nav-overview" class="menu-item active" onclick="switchView('overview')">
+                    <svg viewBox="0 0 24 24">
+                        <rect x="3" y="3" width="7" height="9" rx="1"></rect>
+                        <rect x="14" y="3" width="7" height="5" rx="1"></rect>
+                        <rect x="14" y="12" width="7" height="9" rx="1"></rect>
+                        <rect x="3" y="16" width="7" height="5" rx="1"></rect>
+                    </svg>
+                    Overview Hub
+                </a>
+                <a href="#playground" id="nav-playground" class="menu-item" onclick="switchView('playground')">
+                    <svg viewBox="0 0 24 24">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    Review Console
+                </a>
+                <a href="#ledger" id="nav-ledger" class="menu-item" onclick="switchView('ledger')">
+                    <svg viewBox="0 0 24 24">
+                        <line x1="8" y1="6" x2="21" y2="6"></line>
+                        <line x1="8" y1="12" x2="21" y2="12"></line>
+                        <line x1="8" y1="18" x2="21" y2="18"></line>
+                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                    </svg>
+                    Review Ledger
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="status-badge" id="engine-status">
+                    <span class="pulse-dot"></span>
+                    Gemini 3.1 Active
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="app-main">
+            <!-- App Header -->
+            <header class="app-header">
+                <div class="header-title-group">
+                    <h1 id="page-title">Overview Hub</h1>
+                    <p id="page-subtitle">Unified defect and vulnerability indicators</p>
+                </div>
+                <div class="header-actions">
+                    <button onclick="fetchHistory()" id="btn-sync" class="btn btn-secondary" title="Sync database from server">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 0.15rem;">
+                            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                        </svg>
+                        Sync Engine
+                    </button>
+                </div>
+            </header>
+
+            <!-- Scrollable View Panels -->
+            <main class="view-container">
+                
+                <!-- VIEW 1: OVERVIEW -->
+                <section id="panel-overview" class="view-panel active">
+                    
+                    <!-- Metrics grid -->
+                    <div class="metrics-grid">
+                        <div class="card glow-indigo">
+                            <div class="card-header">
+                                <span class="card-title">Reviews Executed</span>
+                                <div class="card-icon">
+                                    <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                                </div>
+                            </div>
+                            <div class="card-value" id="stat-runs">0</div>
+                            <div class="card-meta">
+                                <span id="stat-last-run">Last: None</span>
+                                <div class="sparkline-container" id="sparkline-runs"></div>
+                            </div>
+                        </div>
+                        <div class="card glow-amber">
+                            <div class="card-header">
+                                <span class="card-title">Findings Discovered</span>
+                                <div class="card-icon">
+                                    <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"/></svg>
+                                </div>
+                            </div>
+                            <div class="card-value" style="color: var(--warning);" id="stat-issues">0</div>
+                            <div class="card-meta">
+                                <span>Code defect findings</span>
+                                <div class="sparkline-container" id="sparkline-issues"></div>
+                            </div>
+                        </div>
+                        <div class="card glow-rose">
+                            <div class="card-header">
+                                <span class="card-title">Critical Blockers</span>
+                                <div class="card-icon">
+                                    <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                </div>
+                            </div>
+                            <div class="card-value" style="color: var(--danger);" id="stat-critical">0</div>
+                            <div class="card-meta">
+                                <span>Slack alerts dispatched</span>
+                                <div class="sparkline-container" id="sparkline-critical"></div>
+                            </div>
+                        </div>
+                        <div class="card glow-emerald">
+                            <div class="card-header">
+                                <span class="card-title">Feedback Alignment</span>
+                                <div class="card-icon">
+                                    <svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+                                </div>
+                            </div>
+                            <div class="card-value" style="color: var(--success);" id="stat-feedback">0 / 0</div>
+                            <div class="card-meta">
+                                <span>Accepts / Dismissals</span>
+                                <div class="sparkline-container" id="sparkline-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main grid layout -->
+                    <div class="overview-grid">
+                        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                            <!-- Charts card -->
+                            <div class="card">
+                                <h2 class="chart-card-title">Analytics Distribution</h2>
+                                <div class="charts-container-row">
+                                    <div class="chart-card">
+                                        <div class="chart-wrapper">
+                                            <canvas id="categoryChart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="chart-card">
+                                        <div class="chart-wrapper">
+                                            <canvas id="severityChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Quick Action Workspace Trigger -->
+                            <div class="card quickstart-card">
+                                <h2 class="chart-card-title">Workspace Quick-Audits</h2>
+                                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                                    Select any file index within your local repository workspace to run a live analysis:
+                                </p>
+                                <div class="quick-files-grid" id="quick-examples-grid">
+                                    <div style="grid-column: 1/-1; text-align: center; padding: 1rem; color: var(--text-muted);">
+                                        Indexing local Python files...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Side Column: Recent Activity Feed -->
+                        <div class="card activity-card">
+                            <h2 class="chart-card-title">Recent Run Log</h2>
+                            <div class="activity-list" id="activity-logs">
+                                <div style="text-align: center; padding: 3rem 0; color: var(--text-muted); font-size: 0.85rem;">
+                                    No records indexed.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW 2: WORKSPACE PLAYGROUND -->
+                <section id="panel-playground" class="view-panel">
+                    <div class="playground-grid">
+                        
+                        <!-- Left Console Controls -->
+                        <div class="console-controls">
+                            <div class="card">
+                                <h2 class="chart-card-title" style="margin-bottom: 1rem;">Console Auditing</h2>
+                                
+                                <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                                    <!-- Selector -->
+                                    <div class="input-group">
+                                        <label class="input-label" for="select-playground-file">Select Workspace File</label>
+                                        <select id="select-playground-file" class="form-select" onchange="syncPlaygroundPath(this.value)">
+                                            <option value="">-- Choose custom file path --</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Custom Path -->
+                                    <div class="input-group">
+                                        <label class="input-label" for="input-playground-path">Target File Path</label>
+                                        <input type="text" id="input-playground-path" class="form-input" placeholder="e.g. examples/auth_service.py" />
+                                    </div>
+
+                                    <!-- Model Select -->
+                                    <div class="input-group">
+                                        <label class="input-label" for="select-playground-model">Reasoning Engine</label>
+                                        <select id="select-playground-model" class="form-select">
+                                            <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite (Fast & Budget)</option>
+                                            <option value="gemini-2.5-flash">gemini-2.5-flash (Standard)</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Trigger Button -->
+                                    <button id="btn-trigger-review" onclick="triggerReviewPlayground()" class="btn">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                        </svg>
+                                        Audit Code Base
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Live logs terminal -->
+                            <div class="card" style="padding: 1rem 1.25rem;">
+                                <h3 class="input-label" style="margin-bottom: 0.5rem;">Compiler & RAG Logs</h3>
+                                <div class="console-log-card" id="console-logs">
+                                    <div class="console-line">
+                                        <span class="console-time">00:00:00</span>
+                                        <span class="console-text info">Console stream initialized. Ready to execute code audit.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right IDE Viewer -->
+                        <div class="workspace-ide">
+                            <div class="ide-header">
+                                <div class="ide-file-info">
+                                    <div class="ide-file-icon">
+                                        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                                    </div>
+                                    <span class="ide-file-path" id="ide-active-filename">Workspace Sandbox</span>
+                                </div>
+                                <div class="ide-file-meta" id="ide-active-meta">
+                                    No active file review.
+                                </div>
+                            </div>
+
+                            <!-- Content Panels -->
+                            <!-- Panel 1: Empty state -->
+                            <div class="ide-empty-state" id="ide-empty-panel">
+                                <div class="ide-empty-icon">
+                                    <svg viewBox="0 0 24 24">
+                                        <polyline points="16 18 22 12 16 6"></polyline>
+                                        <polyline points="8 6 2 12 8 18"></polyline>
+                                    </svg>
+                                </div>
+                                <h3>Interactive Code Auditor</h3>
+                                <p>Select a file from the workspace or specify a target file path, then click <strong>Audit Code Base</strong> to compile findings inline.</p>
+                            </div>
+
+                            <!-- Panel 2: Loading skeleton -->
+                            <div class="ide-loading-state" id="ide-loading-panel" style="display: none;">
+                                <div class="skeleton-line" style="width: 40%"></div>
+                                <div class="skeleton-line" style="width: 85%"></div>
+                                <div class="skeleton-line" style="width: 70%"></div>
+                                <div class="skeleton-line" style="width: 90%"></div>
+                                <div class="skeleton-line" style="width: 55%"></div>
+                                <div class="skeleton-line" style="width: 80%"></div>
+                                <div class="skeleton-line" style="width: 65%"></div>
+                                <div class="skeleton-line" style="width: 75%"></div>
+                            </div>
+
+                            <!-- Panel 3: Real Code Lines with Inline Annotations -->
+                            <div class="ide-code-container" id="ide-code-panel" style="display: none;">
+                                <!-- Dynamically populated rows -->
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- VIEW 3: LEDGER HISTORICAL TABLE -->
+                <section id="panel-ledger" class="view-panel">
+                    <div class="ledger-card">
+                        
+                        <!-- Search and Filter Row -->
+                        <div class="ledger-filter-bar">
+                            <div class="filters-left">
+                                <div class="search-input-wrapper">
+                                    <svg viewBox="0 0 24 24">
+                                        <circle cx="11" cy="11" r="8"></circle>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                    </svg>
+                                    <input type="text" id="ledger-search" class="form-input" onkeyup="filterLedgerTable()" placeholder="Search review target paths..." />
+                                </div>
+
+                                <select id="ledger-filter-category" class="form-select" onchange="filterLedgerTable()">
+                                    <option value="all">All Categories</option>
+                                    <option value="bug">Bugs</option>
+                                    <option value="security">Security</option>
+                                    <option value="performance">Performance</option>
+                                    <option value="style">Style</option>
+                                </select>
+
+                                <select id="ledger-filter-severity" class="form-select" onchange="filterLedgerTable()">
+                                    <option value="all">All Severities</option>
+                                    <option value="critical">Critical</option>
+                                    <option value="warning">Warning</option>
+                                    <option value="info">Info</option>
+                                </select>
+                            </div>
+
+                            <button onclick="clearLedgerFilters()" class="btn btn-secondary" style="padding: 0.55rem 1rem;">
+                                Clear Filters
+                            </button>
+                        </div>
+
+                        <!-- Data table -->
+                        <div class="table-responsive">
+                            <table class="ledger-table">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>Review Target File</th>
+                                        <th>Defects Found</th>
+                                        <th>Distribution</th>
+                                        <th>Auditor Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ledger-rows">
+                                    <!-- Injected dynamically -->
+                                    <tr>
+                                        <td colspan="5" style="text-align: center; padding: 3rem 0; color: var(--text-muted);">
+                                            No records indexed. Synchronizing database ledger...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+                </section>
+
+            </main>
+        </div>
+
+    </div>
+
+    <!-- UI Logic Script -->
+    <script>
+        let categoryChartInst = null;
+        let severityChartInst = null;
+        let activeFeedback = [];
+        let currentRuns = [];
+        let workspaceFiles = [];
+
+        // App state mapping
+        const viewTitles = {
+            'overview': 'Overview Hub',
+            'playground': 'Review Console',
+            'ledger': 'Review Ledger'
+        };
+
+        const viewSubtitles = {
+            'overview': 'Unified defect and vulnerability indicators',
+            'playground': 'Interactive IDE sandbox and RAG auditor',
+            'ledger': 'Complete historic review run directory'
+        };
+
+        // Switch active tab view
+        function switchView(viewName) {
+            document.querySelectorAll('.view-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            document.getElementById(`panel-${viewName}`).classList.add('active');
+            document.getElementById(`nav-${viewName}`).classList.add('active');
+
+            // Update header text
+            document.getElementById('page-title').innerText = viewTitles[viewName];
+            document.getElementById('page-subtitle').innerText = viewSubtitles[viewName];
+            
+            // Adjust sync button visibility
+            const syncBtn = document.getElementById('btn-sync');
+            if (viewName === 'overview') {
+                syncBtn.style.display = 'inline-flex';
+            } else {
+                syncBtn.style.display = 'none';
+            }
+        }
+
+        // Initialize and load statistics
+        async function fetchHistory() {
+            const syncBtn = document.getElementById('btn-sync');
+            if (syncBtn) {
+                syncBtn.disabled = true;
+                syncBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="pulse-dot" style="margin-right: 0.15rem;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Syncing...`;
+            }
+
+            try {
+                // Fetch stats history
+                const response = await fetch('/api/history');
+                const history = await response.json();
+                
+                // Fetch developer feedbacks
+                const feedbackResponse = await fetch('/api/feedback');
+                activeFeedback = await feedbackResponse.json();
+                
+                currentRuns = history;
+
+                // Fetch files in workspace
+                const filesResponse = await fetch('/api/list-examples');
+                const filesData = await filesResponse.json();
+                workspaceFiles = filesData.files || [];
+                
+                updateStats(history, activeFeedback);
+                updateCharts(history);
+                populateWorkspaceSelectors();
+                updateActivityLogs(history);
+                populateLedgerTable(history);
+                
+            } catch (error) {
+                console.error("Apex AI stats query failed:", error);
+            } finally {
+                if (syncBtn) {
+                    syncBtn.disabled = false;
+                    syncBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 0.15rem;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Sync Engine`;
+                }
+            }
+        }
+
+        // Update counts and compile sparklines
+        function updateStats(history, feedback) {
+            document.getElementById('stat-runs').innerText = history.length;
+            
+            let totalIssues = 0;
+            let criticalCount = 0;
+            
+            history.forEach(run => {
+                totalIssues += run.issues_count;
+                if (run.comments) {
+                    run.comments.forEach(c => {
+                        if (c.severity === 'critical') criticalCount++;
+                    });
+                }
+            });
+
+            document.getElementById('stat-issues').innerText = totalIssues;
+            document.getElementById('stat-critical').innerText = criticalCount;
+            
+            if (history.length > 0) {
+                const lastRun = history[history.length - 1];
+                const date = new Date(lastRun.timestamp);
+                document.getElementById('stat-last-run').innerText = `Last: ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+            } else {
+                document.getElementById('stat-last-run').innerText = `Last: None`;
+            }
+
+            let accepts = feedback.filter(item => item.action_type === 'accept').length;
+            let dismissals = feedback.filter(item => item.action_type === 'dismiss').length;
+            document.getElementById('stat-feedback').innerText = `${accepts} / ${dismissals}`;
+
+            // Build sparklines dynamically via inline SVGs!
+            buildSparkline('sparkline-runs', history.map((_, i) => i + 1), 'var(--primary)');
+            buildSparkline('sparkline-issues', history.map(h => h.issues_count), 'var(--warning)');
+            
+            // Build critical blocker sparkline
+            const criticalsArray = history.map(h => {
+                let cnt = 0;
+                if (h.comments) {
+                    h.comments.forEach(c => { if (c.severity === 'critical') cnt++; });
+                }
+                return cnt;
+            });
+            buildSparkline('sparkline-critical', criticalsArray, 'var(--danger)');
+            
+            // Build feedback accepted vs dismissed ratio over time
+            let feedbackRatioHistory = [];
+            let currentAcceptCount = 0;
+            let currentDismissCount = 0;
+            
+            // Just graph the cumulative total feedback actions
+            feedback.forEach((f, idx) => {
+                if (f.action_type === 'accept') currentAcceptCount++;
+                else currentDismissCount++;
+                feedbackRatioHistory.push(currentAcceptCount + currentDismissCount);
+            });
+            if (feedbackRatioHistory.length === 0) feedbackRatioHistory = [0];
+            buildSparkline('sparkline-feedback', feedbackRatioHistory, 'var(--success)');
+        }
+
+        // SVG Sparkline drawing helper
+        function buildSparkline(containerId, dataPoints, strokeColor) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+            
+            if (!dataPoints || dataPoints.length < 2) {
+                container.innerHTML = `<svg viewBox="0 0 80 20" style="width: 100%; height: 100%;"><line x1="0" y1="10" x2="80" y2="10" stroke="${strokeColor}" stroke-opacity="0.3" stroke-width="1.5"/></svg>`;
+                return;
+            }
+            
+            const maxVal = Math.max(...dataPoints, 1);
+            const minVal = Math.min(...dataPoints, 0);
+            const range = maxVal - minVal;
+            
+            const svgWidth = 80;
+            const svgHeight = 20;
+            
+            const coords = dataPoints.map((val, idx) => {
+                const x = (idx / (dataPoints.length - 1)) * svgWidth;
+                const y = svgHeight - 2 - (((val - minVal) / range) * (svgHeight - 4));
+                return `${x},${y}`;
+            });
+            
+            const polylineD = `M ${coords.join(' L ')}`;
+            
+            container.innerHTML = `
+                <svg viewBox="0 0 ${svgWidth} ${svgHeight}" style="width: 100%; height: 100%; overflow: visible;">
+                    <path d="${polylineD}" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            `;
+        }
+
+        // Populates selector dropdowns & Quick audits list
+        function populateWorkspaceSelectors() {
+            const selectPlayground = document.getElementById('select-playground-file');
+            const quickGrid = document.getElementById('quick-examples-grid');
+            
+            if (!selectPlayground || !quickGrid) return;
+            
+            // Clean selectors
+            selectPlayground.innerHTML = '<option value="">-- Choose custom file path --</option>';
+            quickGrid.innerHTML = '';
+            
+            if (workspaceFiles.length === 0) {
+                quickGrid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.8rem;">No reviewable python files indexed in project.</div>`;
+                return;
+            }
+
+            workspaceFiles.forEach(file => {
+                // Dropdown opt
+                const opt = document.createElement('option');
+                opt.value = file;
+                opt.innerText = file;
+                selectPlayground.appendChild(opt);
+
+                // Quick buttons
+                const btn = document.createElement('button');
+                btn.className = 'quick-file-btn';
+                btn.onclick = () => {
+                    switchView('playground');
+                    syncPlaygroundPath(file);
+                    triggerReviewPlayground();
+                };
+                btn.innerHTML = `
+                    <span>${file}</span>
+                    <svg viewBox="0 0 24 24" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                `;
+                quickGrid.appendChild(btn);
+            });
+        }
+
+        function syncPlaygroundPath(val) {
+            const input = document.getElementById('input-playground-path');
+            if (input) {
+                input.value = val;
+            }
+            const dropdown = document.getElementById('select-playground-file');
+            if (dropdown && dropdown.value !== val) {
+                dropdown.value = val;
+            }
+        }
+
+        // Recent Activity timeline
+        function updateActivityLogs(history) {
+            const container = document.getElementById('activity-logs');
+            if (!container) return;
+            
+            if (history.length === 0) {
+                container.innerHTML = `<div style="text-align: center; padding: 3rem 0; color: var(--text-muted); font-size: 0.85rem;">No historical records indexed. Run reviews first.</div>`;
+                return;
+            }
+            
+            container.innerHTML = '';
+            const recents = [...history].reverse().slice(0, 5); // top 5
+            
+            recents.forEach(run => {
+                const date = new Date(run.timestamp);
+                const findingsLabel = run.issues_count === 1 ? '1 finding' : `${run.issues_count} findings`;
+                const runIdx = history.indexOf(run);
+                
+                const item = document.createElement('div');
+                item.className = 'activity-item';
+                item.innerHTML = `
+                    <div class="activity-info">
+                        <span class="activity-file" title="${run.file_path}">${run.file_path.split('/').pop()}</span>
+                        <div class="activity-meta">
+                            <span>${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                            <span style="color: ${run.issues_count > 0 ? 'var(--warning)' : 'var(--success)'}; font-weight: 600;">
+                                ${findingsLabel}
+                            </span>
+                        </div>
+                    </div>
+                    <button class="btn-inspect" onclick="inspectHistoricRun(${runIdx})">
+                        Auditor
+                        <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // Open a historic run directly inside the workspace IDE
+        async function inspectHistoricRun(runIndex) {
+            const run = currentRuns[runIndex];
+            if (!run) return;
+
+            switchView('playground');
+            
+            // Set inputs
+            syncPlaygroundPath(run.file_path);
+            
+            // Loading state
+            document.getElementById('ide-empty-panel').style.display = 'none';
+            document.getElementById('ide-code-panel').style.display = 'none';
+            document.getElementById('ide-loading-panel').style.display = 'flex';
+            
+            // Log console
+            clearConsole();
+            logConsole("Loading historical review details...", "info");
+            logConsole(`File: ${run.file_path}`, "info");
+            logConsole(`Run timestamp: ${run.timestamp}`, "info");
+
+            try {
+                // Fetch file content
+                const fileResponse = await fetch(`/api/file-content?file_path=${encodeURIComponent(run.file_path)}`);
+                if (!fileResponse.ok) {
+                    throw new Error(`Failed to load file contents: ${fileResponse.statusText}`);
+                }
+                const contentData = await fileResponse.json();
+                
+                logConsole("Parsing code buffers...", "info");
+                logConsole(`Loaded ${contentData.content.split('\n').length} lines.`, "info");
+                logConsole(`Synthesizing ${run.issues_count} findings inline...`, "success");
+                
+                renderInlineWorkspace(run.file_path, contentData.content, run.comments);
+                
+            } catch (err) {
+                logConsole(`Inspection Failed: ${err.message}`, "error");
+                document.getElementById('ide-loading-panel').style.display = 'none';
+                document.getElementById('ide-empty-panel').style.display = 'flex';
+            }
+        }
+
+        // Trigger on-demand reviews via UI
+        async function triggerReviewPlayground() {
+            const pathInput = document.getElementById('input-playground-path');
+            const modelSelect = document.getElementById('select-playground-model');
+            const runBtn = document.getElementById('btn-trigger-review');
+            
+            if (!pathInput || !pathInput.value.trim()) {
+                alert("Please select or enter a valid file path to audit.");
+                return;
+            }
+            
+            const targetPath = pathInput.value.trim();
+            const modelName = modelSelect.value;
+            
+            // Lock UI & Loading panel
+            runBtn.disabled = true;
+            runBtn.innerHTML = `Audit Running...`;
+            
+            document.getElementById('ide-empty-panel').style.display = 'none';
+            document.getElementById('ide-code-panel').style.display = 'none';
+            document.getElementById('ide-loading-panel').style.display = 'flex';
+            
+            clearConsole();
+            logConsole("Initializing Apex AI audit pipeline...", "info");
+            logConsole(`Target: ${targetPath}`, "info");
+            logConsole(`Model: ${modelName}`, "info");
+            
+            await sleep(300);
+            logConsole("Evaluating static analyzer signatures...", "info");
+            
+            await sleep(400);
+            logConsole("Retrieving RAG codebase documentation context...", "info");
+            
+            await sleep(300);
+            logConsole("Invoking Gemini reasoning model...", "info");
+
+            try {
+                const response = await fetch('/review-file', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        file_path: targetPath,
+                        model_name: modelName
+                    })
+                });
+
+                if (!response.ok) {
+                    const errDetail = await response.json();
+                    throw new Error(errDetail.detail || "FastAPI review call rejected.");
+                }
+
+                const result = await response.json();
+                
+                logConsole(`FastAPI response success. Code compilation finished.`, "info");
+                logConsole(`Audit reports ${result.comments.length} defect comments.`, result.comments.length > 0 ? "warning" : "success");
+                
+                // Fetch file content to display inline
+                logConsole(`Loading file content for viewer...`, "info");
+                const fileResponse = await fetch(`/api/file-content?file_path=${encodeURIComponent(targetPath)}`);
+                if (!fileResponse.ok) {
+                    throw new Error(`Failed to load reviewed file code.`);
+                }
+                const contentData = await fileResponse.json();
+                
+                // Refresh stats and databases in background
+                fetchHistory();
+                
+                // Render inline code view
+                renderInlineWorkspace(targetPath, contentData.content, result.comments);
+
+            } catch (err) {
+                logConsole(`Compilation Error: ${err.message}`, "error");
+                document.getElementById('ide-loading-panel').style.display = 'none';
+                document.getElementById('ide-empty-panel').style.display = 'flex';
+            } finally {
+                runBtn.disabled = false;
+                runBtn.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    Audit Code Base
+                `;
+            }
+        }
+
+        // Render IDE workspace with inline annotations
+        function renderInlineWorkspace(filePath, rawContent, comments) {
+            const codePanel = document.getElementById('ide-code-panel');
+            const loadingPanel = document.getElementById('ide-loading-panel');
+            
+            document.getElementById('ide-active-filename').innerText = filePath.split('/').pop();
+            document.getElementById('ide-active-meta').innerText = `${comments.length} comments`;
+            
+            codePanel.innerHTML = '';
+            
+            const lines = rawContent.split('\n');
+            
+            lines.forEach((lineText, lineIdx) => {
+                const lineNum = lineIdx + 1;
+                
+                // Check if any comments end at this line number (GitHub style - comments grouped on final line of range)
+                const matchingComments = comments.filter(c => c.end_line === lineNum);
+                
+                // Create line container
+                const row = document.createElement('div');
+                
+                const hasCritical = matchingComments.some(c => c.severity === 'critical');
+                const hasAny = matchingComments.length > 0;
+                
+                row.className = `code-row ${hasCritical ? 'line-has-finding-critical' : (hasAny ? 'line-has-finding' : '')}`;
+                row.innerHTML = `
+                    <div class="line-num-cell">${lineNum}</div>
+                    <div class="line-content-cell">${escapeHtml(lineText || ' ')}</div>
+                `;
+                codePanel.appendChild(row);
+                
+                // Ingress inline comment cards right after this code row
+                matchingComments.forEach((c) => {
+                    const commentIndex = comments.indexOf(c);
+                    const inlineRow = buildInlineCommentRow(c, commentIndex, filePath);
+                    codePanel.appendChild(inlineRow);
+                });
+            });
+            
+            loadingPanel.style.display = 'none';
+            codePanel.style.display = 'block';
+        }
+
+        // Builds HTML DOM structure for the inline comment annotations
+        function buildInlineCommentRow(comment, commentIndex, filePath) {
+            const row = document.createElement('div');
+            
+            const sev = comment.severity.toLowerCase();
+            const cat = comment.category.toLowerCase();
+            
+            row.className = `inline-finding-row ${sev}`;
+            
+            // Build suggestion diff block if available
+            let fixBlock = '';
+            if (comment.suggestion) {
+                const origLines = comment.suggestion.original_code.split('\n');
+                const replLines = comment.suggestion.replacement_code.split('\n');
+                
+                let diffLinesHtml = '';
+                origLines.forEach(l => {
+                    diffLinesHtml += `
+                        <div class="diff-row diff-row-removed">
+                            <span class="diff-sign">-</span>
+                            <span class="diff-code">${escapeHtml(l)}</span>
+                        </div>
+                    `;
+                });
+                replLines.forEach(l => {
+                    diffLinesHtml += `
+                        <div class="diff-row diff-row-added">
+                            <span class="diff-sign">+</span>
+                            <span class="diff-code">${escapeHtml(l)}</span>
+                        </div>
+                    `;
+                });
+
+                fixBlock = `
+                    <div class="inline-diff-block">
+                        <div class="inline-diff-header">
+                            <span>Apex AI Refactor Patch</span>
+                            <span style="font-family: var(--font-sans); font-size: 0.6rem; text-transform: uppercase;">Lines ${comment.start_line}-${comment.end_line}</span>
+                        </div>
+                        <div class="inline-diff-lines">
+                            ${diffLinesHtml}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Figure out feedback active state
+            const targetSnippet = comment.suggestion ? comment.suggestion.original_code : comment.explanation;
+            const logFeed = activeFeedback.find(f => 
+                f.file_path === filePath &&
+                f.comment_title === comment.title &&
+                f.code_snippet === targetSnippet
+            );
+            
+            const acceptActive = logFeed && logFeed.action_type === 'accept' ? 'active' : '';
+            const dismissActive = logFeed && logFeed.action_type === 'dismiss' ? 'active' : '';
+            
+            if (dismissActive) {
+                row.classList.add('dismissed');
+            }
+
+            row.innerHTML = `
+                <div class="inline-finding-indicator-col">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--text-muted);">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                </div>
+                <div class="inline-finding-card-cell">
+                    <div class="inline-card-header">
+                        <div class="inline-tag-group">
+                            <span class="severity-badge ${sev}">${comment.severity}</span>
+                            <span class="category-label">${capitalize(comment.category)}</span>
+                        </div>
+                        <span class="line-label">Lines ${comment.start_line} - ${comment.end_line}</span>
+                    </div>
+                    <h4 class="inline-finding-title">${comment.title}</h4>
+                    <p class="inline-finding-exp">${comment.explanation}</p>
+                    
+                    ${fixBlock}
+                    
+                    <div class="inline-action-row">
+                        <span class="inline-action-label">
+                            <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            Feedback alignment
+                        </span>
+                        <div class="inline-actions">
+                            <button onclick="submitInlineFeedback('${filePath}', ${commentIndex}, 'accept', this)" 
+                                    class="btn-feedback btn-accept ${acceptActive}">
+                                <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                                Accept
+                            </button>
+                            <button onclick="submitInlineFeedback('${filePath}', ${commentIndex}, 'dismiss', this)" 
+                                    class="btn-feedback btn-dismiss ${dismissActive}">
+                                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                Dismiss
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return row;
+        }
+
+        // Submits feedback from inline card
+        async function submitInlineFeedback(filePath, commentIndex, actionType, btn) {
+            // Find finding model reference
+            const run = currentRuns.find(r => r.file_path === filePath);
+            if (!run) return;
+            const c = run.comments[commentIndex];
+            if (!c) return;
+
+            const codeText = c.suggestion ? c.suggestion.original_code : c.explanation;
+            
+            try {
+                const response = await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        file_path: filePath,
+                        comment_title: c.title,
+                        code_snippet: codeText,
+                        action_type: actionType,
+                        explanation: `Developer marked model suggestion as ${actionType}`
+                    })
+                });
+
+                if (response.ok) {
+                    logConsole(`Recorded developer feedback: ${actionType} on '${c.title}'`, "info");
+                    
+                    // Refresh data in background
+                    const responseH = await fetch('/api/history');
+                    const history = await responseH.json();
+                    const feedbackResponse = await fetch('/api/feedback');
+                    activeFeedback = await feedbackResponse.json();
+                    currentRuns = history;
+                    updateStats(history, activeFeedback);
+
+                    // Visual feedback updates
+                    const cardRow = btn.closest('.inline-finding-row');
+                    const actionsDiv = btn.closest('.inline-actions');
+                    const acceptBtn = actionsDiv.querySelector('.btn-accept');
+                    const dismissBtn = actionsDiv.querySelector('.btn-dismiss');
+
+                    if (actionType === 'accept') {
+                        acceptBtn.className = "btn-feedback btn-accept active";
+                        dismissBtn.className = "btn-feedback btn-dismiss";
+                        cardRow.classList.remove('dismissed');
+                    } else {
+                        acceptBtn.className = "btn-feedback btn-accept";
+                        dismissBtn.className = "btn-feedback btn-dismiss active";
+                        cardRow.classList.add('dismissed');
+                    }
+                }
+            } catch (e) {
+                console.error("Feedback submit failed:", e);
+                logConsole(`Feedback record failure: ${e.message}`, "error");
+            }
+        }
+
+        // Ledger list populating
+        function populateLedgerTable(history) {
+            const tbody = document.getElementById('ledger-rows');
+            if (!tbody) return;
+            
+            if (history.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 3rem 0; color: var(--text-muted);">No records indexed. Audit workspace files to generate records.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            
+            history.forEach((run, index) => {
+                const date = new Date(run.timestamp).toLocaleString();
+                const badgeClass = run.issues_count === 0 ? 'badge-clean' : 'badge-findings';
+                const label = run.issues_count === 1 ? '1 issue' : `${run.issues_count} issues`;
+                
+                // Category counts distributions
+                let distHtml = '<div style="display: flex; gap: 0.35rem;">';
+                if (run.categories) {
+                    Object.keys(run.categories).forEach(cat => {
+                        const count = run.categories[cat];
+                        if (count > 0) {
+                            let dotColor = 'var(--primary)';
+                            if (cat === 'bug') dotColor = 'var(--danger)';
+                            else if (cat === 'security') dotColor = 'var(--primary)';
+                            else if (cat === 'performance') dotColor = 'var(--info)';
+                            else if (cat === 'style') dotColor = 'var(--warning)';
+                            
+                            distHtml += `<span style="font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.25rem; font-family: var(--font-mono); color: var(--text-secondary); background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); padding: 0.15rem 0.4rem; border-radius: 4px;">
+                                <span style="width: 5px; height: 5px; background: ${dotColor}; border-radius: 50%;"></span>
+                                ${capitalize(cat)}: ${count}
+                            </span>`;
+                        }
+                    });
+                }
+                distHtml += '</div>';
+
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-file-path', run.file_path.toLowerCase());
+                tr.setAttribute('data-has-critical', checkRunHasSeverity(run, 'critical'));
+                tr.setAttribute('data-has-warning', checkRunHasSeverity(run, 'warning'));
+                tr.setAttribute('data-has-info', checkRunHasSeverity(run, 'info'));
+                
+                let categoriesContained = [];
+                if (run.categories) {
+                    Object.keys(run.categories).forEach(c => { if(run.categories[c] > 0) categoriesContained.push(c); });
+                }
+                tr.setAttribute('data-categories', categoriesContained.join(','));
+
+                tr.innerHTML = `
+                    <td class="td-mono">${date}</td>
+                    <td class="td-file">${run.file_path}</td>
+                    <td>
+                        <span class="badge ${badgeClass}">${label}</span>
+                    </td>
+                    <td>${distHtml}</td>
+                    <td>
+                        <button onclick="inspectHistoricRun(${index})" class="btn-inspect">
+                            Inspect
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function checkRunHasSeverity(run, severity) {
+            if (!run.comments) return false;
+            return run.comments.some(c => c.severity === severity);
+        }
+
+        // Filters the history ledger table
+        function filterLedgerTable() {
+            const query = document.getElementById('ledger-search').value.toLowerCase();
+            const categoryFilter = document.getElementById('ledger-filter-category').value;
+            const severityFilter = document.getElementById('ledger-filter-severity').value;
+            
+            const rows = document.querySelectorAll('#ledger-rows tr');
+            
+            rows.forEach(row => {
+                if (row.cells.length < 5) return; // skip empty messages
+                
+                const filePath = row.getAttribute('data-file-path') || '';
+                const hasCritical = row.getAttribute('data-has-critical') === 'true';
+                const hasWarning = row.getAttribute('data-has-warning') === 'true';
+                const hasInfo = row.getAttribute('data-has-info') === 'true';
+                const categories = (row.getAttribute('data-categories') || '').split(',');
+                
+                // Matches Search?
+                const matchSearch = filePath.includes(query);
+                
+                // Matches Category?
+                let matchCategory = true;
+                if (categoryFilter !== 'all') {
+                    matchCategory = categories.includes(categoryFilter);
+                }
+                
+                // Matches Severity?
+                let matchSeverity = true;
+                if (severityFilter !== 'all') {
+                    if (severityFilter === 'critical') matchSeverity = hasCritical;
+                    else if (severityFilter === 'warning') matchSeverity = hasWarning;
+                    else if (severityFilter === 'info') matchSeverity = hasInfo;
+                }
+                
+                if (matchSearch && matchCategory && matchSeverity) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        function clearLedgerFilters() {
+            document.getElementById('ledger-search').value = '';
+            document.getElementById('ledger-filter-category').value = 'all';
+            document.getElementById('ledger-filter-severity').value = 'all';
+            filterLedgerTable();
+        }
+
+        // Console logger output utilities
+        function logConsole(message, type = "info") {
+            const logsBox = document.getElementById('console-logs');
+            if (!logsBox) return;
+            
+            const line = document.createElement('div');
+            line.className = 'console-line';
+            
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0];
+            
+            line.innerHTML = `
+                <span class="console-time">${timeStr}</span>
+                <span class="console-text ${type}">${escapeHtml(message)}</span>
+            `;
+            
+            logsBox.appendChild(line);
+            logsBox.scrollTop = logsBox.scrollHeight;
+        }
+
+        function clearConsole() {
+            const logsBox = document.getElementById('console-logs');
+            if (logsBox) logsBox.innerHTML = '';
+        }
+
+        // Charts update
+        function updateCharts(history) {
+            let catStats = { bug: 0, security: 0, performance: 0, style: 0 };
+            let sevStats = { critical: 0, warning: 0, info: 0 };
+            
+            history.forEach(run => {
+                if (run.comments) {
+                    run.comments.forEach(c => {
+                        const cat = c.category.toLowerCase();
+                        const sev = c.severity.toLowerCase();
+                        if (cat in catStats) catStats[cat]++;
+                        if (sev in sevStats) sevStats[sev]++;
+                    });
+                }
+            });
+
+            // Clean previous charts
+            if (categoryChartInst) categoryChartInst.destroy();
+            if (severityChartInst) severityChartInst.destroy();
+
+            // Doughnut Chart
+            const ctxCat = document.getElementById('categoryChart').getContext('2d');
+            categoryChartInst = new Chart(ctxCat, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Bugs', 'Security', 'Performance', 'Style'],
+                    datasets: [{
+                        data: [catStats.bug, catStats.security, catStats.performance, catStats.style],
+                        backgroundColor: ['#ef4444', '#6366f1', '#3b82f6', '#f59e0b'],
+                        borderColor: '#030712',
+                        borderWidth: 2,
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: { 
+                            position: 'right', 
+                            labels: { 
+                                color: '#d1d5db', 
+                                boxWidth: 10, 
+                                font: { family: 'Inter', size: 10, weight: '500' } 
+                            } 
+                        },
+                        title: {
+                            display: true,
+                            text: 'Issue Category Breakdown',
+                            color: '#f9fafb',
+                            font: { family: 'Outfit', size: 11, weight: '700' },
+                            padding: { bottom: 10 }
+                        }
+                    }
+                }
+            });
+
+            // Bar Chart
+            const ctxSev = document.getElementById('severityChart').getContext('2d');
+            severityChartInst = new Chart(ctxSev, {
+                type: 'bar',
+                data: {
+                    labels: ['Critical', 'Warning', 'Info'],
+                    datasets: [{
+                        data: [sevStats.critical, sevStats.warning, sevStats.info],
+                        backgroundColor: ['rgba(239, 68, 68, 0.4)', 'rgba(245, 158, 11, 0.4)', 'rgba(59, 130, 246, 0.4)'],
+                        borderColor: ['#ef4444', '#f59e0b', '#3b82f6'],
+                        borderWidth: 1.5,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            ticks: { 
+                                color: '#6b7280', 
+                                font: { family: 'Fira Code', size: 9 },
+                                precision: 0
+                            }, 
+                            grid: { color: 'rgba(255,255,255,0.02)' } 
+                        },
+                        x: { 
+                            ticks: { color: '#d1d5db', font: { family: 'Inter', size: 10, weight: '500' } }, 
+                            grid: { display: false } 
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: 'Severity Level Scale',
+                            color: '#f9fafb',
+                            font: { family: 'Outfit', size: 11, weight: '700' },
+                            padding: { bottom: 10 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Utilities
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function capitalize(s) {
+            if (typeof s !== 'string') return '';
+            return s.charAt(0).toUpperCase() + s.slice(1);
+        }
+
+        // Custom sleep helper
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Initial trigger
+        fetchHistory();
+    </script>
+</body>
+</html>

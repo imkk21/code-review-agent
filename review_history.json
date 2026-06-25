@@ -1,0 +1,962 @@
+[
+  {
+    "timestamp": "2026-06-24T17:20:51.619388",
+    "file_path": "examples/vulnerable_code.py",
+    "issues_count": 5,
+    "categories": {
+      "bug": 0,
+      "security": 3,
+      "performance": 0,
+      "style": 2
+    },
+    "comments": [
+      {
+        "file_path": "examples/vulnerable_code.py",
+        "start_line": 5,
+        "end_line": 5,
+        "category": "security",
+        "severity": "critical",
+        "title": "Hardcoded Secret",
+        "explanation": "Hardcoding sensitive credentials like API keys in source code is a major security risk. Use environment variables or a secure secret management service.",
+        "suggestion": {
+          "original_code": "API_KEY = \"KGAT_ea34dc35c5f3e3fef822bcbb14944036\"",
+          "replacement_code": "API_KEY = os.environ.get(\"API_KEY\")",
+          "explanation": "Retrieving the API key from an environment variable prevents sensitive data from being committed to version control."
+        }
+      },
+      {
+        "file_path": "examples/vulnerable_code.py",
+        "start_line": 8,
+        "end_line": 8,
+        "category": "style",
+        "severity": "warning",
+        "title": "Mutable Default Argument",
+        "explanation": "Using a mutable object like a list as a default argument in Python persists across function calls, which can lead to unexpected side effects.",
+        "suggestion": {
+          "original_code": "def fetch_user_data(user_id: str, results=[]) -> list:",
+          "replacement_code": "def fetch_user_data(user_id: str, results=None) -> list:\n    if results is None:\n        results = []",
+          "explanation": "Using None as a default value and initializing the list inside the function ensures a fresh list is created for every call."
+        }
+      },
+      {
+        "file_path": "examples/vulnerable_code.py",
+        "start_line": 11,
+        "end_line": 12,
+        "category": "security",
+        "severity": "critical",
+        "title": "SQL Injection Risk",
+        "explanation": "Constructing SQL queries using f-strings allows for SQL injection attacks. Always use parameterized queries.",
+        "suggestion": {
+          "original_code": "query = f\"SELECT * FROM users WHERE id = '{user_id}'\"\n    cursor.execute(query)",
+          "replacement_code": "cursor.execute(\"SELECT * FROM users WHERE id = ?\", (user_id,))",
+          "explanation": "Parameterized queries ensure that user input is treated as data, not executable code, neutralizing SQL injection risks."
+        }
+      },
+      {
+        "file_path": "examples/vulnerable_code.py",
+        "start_line": 16,
+        "end_line": 16,
+        "category": "style",
+        "severity": "info",
+        "title": "Print Statement Debugging",
+        "explanation": "Print statements are not suitable for production logging. Use the standard logging module to control output levels and destinations.",
+        "suggestion": {
+          "original_code": "print(f\"Debug: Query executed: {query}\")",
+          "replacement_code": "import logging\nlogger = logging.getLogger(__name__)\nlogger.debug(f\"Query executed: {query}\")",
+          "explanation": "The logging module provides better control over log levels, formatting, and output streams."
+        }
+      },
+      {
+        "file_path": "examples/vulnerable_code.py",
+        "start_line": 33,
+        "end_line": 33,
+        "category": "security",
+        "severity": "critical",
+        "title": "Dangerous Eval",
+        "explanation": "The eval() function executes arbitrary code, which can lead to remote code execution (RCE) if the input is controlled by a user.",
+        "suggestion": {
+          "original_code": "return eval(user_cmd)",
+          "replacement_code": "import ast\n# Use ast.literal_eval if you only need to parse safe literals\nreturn ast.literal_eval(user_cmd)",
+          "explanation": "If you need to parse data, use ast.literal_eval, which is safe. If you need to execute logic, use a structured command pattern or a safe parser."
+        }
+      }
+    ],
+    "summary": "The code contains several critical security vulnerabilities, including hardcoded secrets, SQL injection, and arbitrary code execution via eval(). Additionally, there are style issues regarding mutable default arguments and debugging practices. Recommendations include using environment variables, parameterized queries, and safer alternatives to eval()."
+  },
+  {
+    "timestamp": "2026-06-24T17:22:24.705722",
+    "file_path": "examples/auth_service.py",
+    "issues_count": 3,
+    "categories": {
+      "bug": 0,
+      "security": 3,
+      "performance": 0,
+      "style": 0
+    },
+    "comments": [
+      {
+        "file_path": "examples/auth_service.py",
+        "start_line": 7,
+        "end_line": 7,
+        "category": "security",
+        "severity": "critical",
+        "title": "Hardcoded Secret",
+        "explanation": "Hardcoding secrets in source code is a major security risk. Use environment variables or a secret management service to store sensitive keys.",
+        "suggestion": {
+          "original_code": "JWT_SECRET = \"super-secret-key-12345\"  # Hardcoded secret key",
+          "replacement_code": "import os\nJWT_SECRET = os.environ.get(\"JWT_SECRET\")",
+          "explanation": "Retrieving the secret from an environment variable prevents sensitive information from being committed to version control."
+        }
+      },
+      {
+        "file_path": "examples/auth_service.py",
+        "start_line": 33,
+        "end_line": 33,
+        "category": "security",
+        "severity": "critical",
+        "title": "SQL Injection Risk",
+        "explanation": "Using f-strings to construct SQL queries allows for SQL injection attacks. Always use parameterized queries (prepared statements) to safely handle user input.",
+        "suggestion": {
+          "original_code": "cursor.execute(f\"INSERT INTO users VALUES ('{username}', '{md5_hash}', '{email}')\")",
+          "replacement_code": "cursor.execute(\"INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)\", (username, md5_hash, email))",
+          "explanation": "Parameterized queries ensure that the database driver treats input as data rather than executable code, effectively neutralizing SQL injection risks."
+        }
+      },
+      {
+        "file_path": "examples/auth_service.py",
+        "start_line": 27,
+        "end_line": 27,
+        "category": "security",
+        "severity": "warning",
+        "title": "Weak Password Hashing",
+        "explanation": "MD5 is cryptographically broken and vulnerable to collision attacks. Use a strong, slow hashing algorithm like Argon2 or bcrypt with a salt.",
+        "suggestion": {
+          "original_code": "md5_hash = hashlib.md5(password.encode()).hexdigest()",
+          "replacement_code": "import bcrypt\n# Use bcrypt for secure password hashing\npassword_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())",
+          "explanation": "bcrypt is designed to be computationally expensive, making brute-force attacks significantly harder."
+        }
+      }
+    ],
+    "summary": "The auth_service.py file contains several critical security vulnerabilities, including hardcoded secrets, SQL injection risks, and the use of weak cryptographic hashing. These issues must be addressed immediately to prevent unauthorized access and data breaches."
+  },
+  {
+    "timestamp": "2026-06-24T17:22:38.398662",
+    "file_path": "examples/performance_issues.py",
+    "issues_count": 5,
+    "categories": {
+      "bug": 0,
+      "security": 1,
+      "performance": 4,
+      "style": 0
+    },
+    "comments": [
+      {
+        "file_path": "examples/performance_issues.py",
+        "start_line": 20,
+        "end_line": 20,
+        "category": "security",
+        "severity": "critical",
+        "title": "SQL Injection Risk",
+        "explanation": "Using f-strings to insert variables into SQL queries is vulnerable to SQL injection. Use parameterized queries instead.",
+        "suggestion": {
+          "original_code": "cursor.execute(f\"SELECT action, timestamp FROM logs WHERE user_id = {user_id}\")",
+          "replacement_code": "cursor.execute(\"SELECT action, timestamp FROM logs WHERE user_id = ?\", (user_id,))",
+          "explanation": "Parameterized queries ensure that the database driver handles input sanitization, preventing malicious SQL injection."
+        }
+      },
+      {
+        "file_path": "examples/performance_issues.py",
+        "start_line": 14,
+        "end_line": 23,
+        "category": "performance",
+        "severity": "warning",
+        "title": "N+1 Query Problem",
+        "explanation": "Executing a query inside a loop causes the N+1 problem, which significantly degrades performance as the number of users grows. Use a JOIN or a single query with an IN clause.",
+        "suggestion": {
+          "original_code": "for user in users:\n    user_id = user[0]\n    cursor.execute(f\"SELECT action, timestamp FROM logs WHERE user_id = {user_id}\")\n    logs = cursor.fetchall()",
+          "replacement_code": "cursor.execute(\"SELECT user_id, action, timestamp FROM logs\")\nall_logs = cursor.fetchall()\n# Group logs by user_id in memory using a dictionary",
+          "explanation": "Fetching all logs in one query and grouping them in memory is significantly faster than executing multiple round-trips to the database."
+        }
+      },
+      {
+        "file_path": "examples/performance_issues.py",
+        "start_line": 31,
+        "end_line": 31,
+        "category": "performance",
+        "severity": "critical",
+        "title": "Blocking Async Event Loop",
+        "explanation": "Using time.sleep() in an async function blocks the entire event loop, preventing other tasks from running. Use asyncio.sleep() instead.",
+        "suggestion": {
+          "original_code": "time.sleep(1.0)",
+          "replacement_code": "await asyncio.sleep(1.0)",
+          "explanation": "asyncio.sleep() is non-blocking and allows the event loop to switch to other tasks while waiting."
+        }
+      },
+      {
+        "file_path": "examples/performance_issues.py",
+        "start_line": 39,
+        "end_line": 43,
+        "category": "performance",
+        "severity": "warning",
+        "title": "Quadratic Complexity in Lookup",
+        "explanation": "Checking membership in a list inside a loop results in O(N*M) complexity. Converting the list to a set provides O(1) average lookup time.",
+        "suggestion": {
+          "original_code": "for item_a in list_a:\n    if item_a in list_b:\n        if item_a not in common:\n            common.append(item_a)",
+          "replacement_code": "set_b = set(list_b)\ncommon = list(set(list_a) & set_b)",
+          "explanation": "Using set intersection is highly optimized and reduces the complexity to O(N+M)."
+        }
+      },
+      {
+        "file_path": "examples/performance_issues.py",
+        "start_line": 49,
+        "end_line": 50,
+        "category": "performance",
+        "severity": "warning",
+        "title": "Inefficient String Concatenation",
+        "explanation": "Repeatedly concatenating strings with += creates a new string object in memory on every iteration, leading to O(N^2) performance. Use list joining instead.",
+        "suggestion": {
+          "original_code": "report = \"\"\nfor record in records:\n    report += f\"Record ID: {record['id']}\\nName: {record['name']}\\n---\\n\"",
+          "replacement_code": "report_parts = []\nfor record in records:\n    report_parts.append(f\"Record ID: {record['id']}\\nName: {record['name']}\\n---\\n\")\nreport = \"\".join(report_parts)",
+          "explanation": "Joining a list of strings is O(N) and significantly more memory-efficient."
+        }
+      }
+    ],
+    "summary": "The code contains several critical performance bottlenecks, including an N+1 query issue, blocking I/O in an async context, inefficient O(N^2) lookups, and poor string concatenation practices. Additionally, a critical SQL injection vulnerability was identified in the database query logic."
+  },
+  {
+    "timestamp": "2026-06-24T17:22:51.201773",
+    "file_path": "examples/data_processor.py",
+    "issues_count": 5,
+    "categories": {
+      "bug": 3,
+      "security": 2,
+      "performance": 0,
+      "style": 0
+    },
+    "comments": [
+      {
+        "file_path": "examples/data_processor.py",
+        "start_line": 9,
+        "end_line": 10,
+        "category": "bug",
+        "severity": "warning",
+        "title": "Mutable Default Argument",
+        "explanation": "Using a mutable default argument (list) in the constructor causes the list to be shared across all instances of DataProcessor, leading to unexpected state persistence between objects.",
+        "suggestion": {
+          "original_code": "    def __init__(self, processing_history=[]):\n        self.history = processing_history",
+          "replacement_code": "    def __init__(self, processing_history=None):\n        self.history = processing_history if processing_history is not None else []",
+          "explanation": "Use None as the default value and initialize the list inside the constructor to ensure each instance gets its own unique list."
+        }
+      },
+      {
+        "file_path": "examples/data_processor.py",
+        "start_line": 13,
+        "end_line": 16,
+        "category": "bug",
+        "severity": "critical",
+        "title": "Division by Zero",
+        "explanation": "The function `calculate_average_score` does not check if the `scores` list is empty, which will raise a ZeroDivisionError if an empty list is passed.",
+        "suggestion": {
+          "original_code": "        avg = total / len(scores) \n        return avg",
+          "replacement_code": "        if not scores:\n            return 0\n        return total / len(scores)",
+          "explanation": "Add a guard clause to handle empty lists gracefully."
+        }
+      },
+      {
+        "file_path": "examples/data_processor.py",
+        "start_line": 20,
+        "end_line": 21,
+        "category": "security",
+        "severity": "critical",
+        "title": "Sensitive Data Exposure in Logs",
+        "explanation": "Logging credit card numbers and CVC codes is a severe security violation (PCI-DSS non-compliance). Sensitive PII and financial secrets should never be written to logs.",
+        "suggestion": {
+          "original_code": "        logger.info(f\"Processing card payment for user {user_id}: card={credit_card}, cvc={cvc}, amount={amount}\")",
+          "replacement_code": "        logger.info(f\"Processing card payment for user {user_id}: amount={amount}\")",
+          "explanation": "Remove sensitive fields from the log message."
+        }
+      },
+      {
+        "file_path": "examples/data_processor.py",
+        "start_line": 26,
+        "end_line": 29,
+        "category": "security",
+        "severity": "critical",
+        "title": "Insecure Deserialization",
+        "explanation": "Using `pickle.loads()` on untrusted input is dangerous and can lead to arbitrary code execution. Use a safer format like JSON for data interchange.",
+        "suggestion": {
+          "original_code": "        data = pickle.loads(session_bytes)",
+          "replacement_code": "        import json\n        data = json.loads(session_bytes)",
+          "explanation": "Switch to `json.loads` which is safe for untrusted input."
+        }
+      },
+      {
+        "file_path": "examples/data_processor.py",
+        "start_line": 34,
+        "end_line": 39,
+        "category": "bug",
+        "severity": "warning",
+        "title": "Off-by-one Error in Range",
+        "explanation": "The `extract_sublist` function incorrectly calculates the end index and uses a range that excludes the final element, resulting in an incomplete sublist.",
+        "suggestion": {
+          "original_code": "        if end is None:\n            end = len(items) - 1 # Logic error: should be len(items) to get full list inclusive\n        sub = []\n        for i in range(start, end):  # range is exclusive of end, meaning last element is skipped",
+          "replacement_code": "        if end is None:\n            end = len(items)\n        return items[start:end]",
+          "explanation": "Use Python slicing which is more idiomatic and handles bounds correctly."
+        }
+      }
+    ],
+    "summary": "The code contains several critical security and logic issues, including insecure deserialization, logging of sensitive financial data, and common Python pitfalls like mutable default arguments and off-by-one errors. Recommendations include switching to safe serialization, removing PII from logs, and using idiomatic Python slicing."
+  },
+  {
+    "timestamp": "2026-06-24T19:32:09.626538",
+    "file_path": "test_sample.py",
+    "issues_count": 1,
+    "categories": {
+      "bug": 1,
+      "security": 0,
+      "performance": 0,
+      "style": 0
+    },
+    "comments": [
+      {
+        "file_path": "test_sample.py",
+        "start_line": 1,
+        "end_line": 2,
+        "category": "bug",
+        "severity": "critical",
+        "title": "Mutable default argument",
+        "explanation": "Using a mutable object (list) as a default argument in a function definition is a common Python pitfall. The default value is evaluated only once at function definition time, meaning all calls to f() will share the same list instance. If the list is modified, those changes persist across subsequent calls.",
+        "suggestion": {
+          "original_code": "x = [1, 2]\ndef f(a=x): pass",
+          "replacement_code": "def f(a=None):\n    if a is None:\n        a = [1, 2]\n    pass",
+          "explanation": "Using None as a sentinel value and initializing the list inside the function body ensures that a new list is created every time the function is called without an argument, avoiding unintended side effects."
+        }
+      }
+    ],
+    "summary": "The code contains a classic Python anti-pattern where a mutable object (a list) is used as a default argument. This can lead to unexpected state persistence between function calls. I have recommended using None as a default value and initializing the list inside the function."
+  },
+  {
+    "timestamp": "2026-06-24T19:47:47.939783",
+    "file_path": "/test_ai.py",
+    "issues_count": 2,
+    "categories": {
+      "bug": 1,
+      "security": 0,
+      "performance": 0,
+      "style": 1
+    },
+    "comments": [
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 2,
+        "end_line": 2,
+        "category": "bug",
+        "severity": "warning",
+        "title": "Mutable default argument",
+        "explanation": "Using a list as a default argument in Python persists the object across multiple function calls, which can lead to unexpected behavior and state leakage between calls.",
+        "suggestion": {
+          "original_code": "def add_user(user_id: str, history=[]):",
+          "replacement_code": "def add_user(user_id: str, history=None):\n    if history is None:\n        history = []",
+          "explanation": "Using None as a default value and initializing the list inside the function ensures a fresh list is created for every call."
+        }
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 6,
+        "end_line": 6,
+        "category": "style",
+        "severity": "info",
+        "title": "Remove print statement",
+        "explanation": "Print statements are not suitable for production code. Use the standard logging module to allow for configurable log levels and output destinations.",
+        "suggestion": {
+          "original_code": "print(f\"Debug: user {user_id} registered.\")",
+          "replacement_code": "import logging\nlogger = logging.getLogger(__name__)\nlogger.debug(f\"user {user_id} registered.\")",
+          "explanation": "Using the logging module provides better control over output, formatting, and severity levels."
+        }
+      }
+    ],
+    "summary": "The code changes contain a common Python anti-pattern regarding mutable default arguments and a leftover debug print statement. These should be addressed to ensure code reliability and maintainability."
+  },
+  {
+    "timestamp": "2026-06-24T19:48:03.194939",
+    "file_path": "/test_ai.py",
+    "issues_count": 1,
+    "categories": {
+      "bug": 1,
+      "security": 0,
+      "performance": 0,
+      "style": 0
+    },
+    "comments": [
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 8,
+        "end_line": 10,
+        "category": "bug",
+        "severity": "critical",
+        "title": "Undefined variable in logging statement",
+        "explanation": "The variable 'user_id' is used in the logger.debug call at the module level, but it is not defined in this scope. This will raise a NameError at runtime when the module is imported.",
+        "suggestion": {
+          "original_code": "logger.debug(f\"user {user_id} registered.\")",
+          "replacement_code": "def log_user_registration(user_id: str):\n    logger.debug(f\"user {user_id} registered.\")",
+          "explanation": "Move the logging logic into a function where 'user_id' is available as an argument to avoid scope errors."
+        }
+      }
+    ],
+    "summary": "The code contains a critical bug where a variable is referenced outside of its scope, which will cause the application to crash upon import. The mutable default argument pattern in 'add_user' is correctly handled, but the logging implementation is invalid."
+  },
+  {
+    "timestamp": "2026-06-24T19:48:26.427340",
+    "file_path": "/test_ai.py",
+    "issues_count": 2,
+    "categories": {
+      "bug": 0,
+      "security": 0,
+      "performance": 0,
+      "style": 2
+    },
+    "comments": [
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 1,
+        "end_line": 5,
+        "category": "style",
+        "severity": "info",
+        "title": "Redundant comment",
+        "explanation": "The comment '# 1. Critical Mutable default warning' is redundant as the code correctly implements the pattern to avoid mutable default arguments. Comments should explain 'why' rather than 'what' is being done.",
+        "suggestion": {
+          "original_code": "# 1. Critical Mutable default warning\ndef add_user(user_id: str, history=None):\n    if history is None:\n        history = []\n    pass",
+          "replacement_code": "def add_user(user_id: str, history: list[str] | None = None) -> None:\n    history = history or []\n    pass",
+          "explanation": "Using type hints and a more idiomatic assignment makes the code cleaner and more self-documenting."
+        }
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 7,
+        "end_line": 11,
+        "category": "style",
+        "severity": "info",
+        "title": "Redundant comment",
+        "explanation": "The comment '# 2. Print debugging warning' is unnecessary and potentially misleading as the code correctly uses the logging module instead of print statements.",
+        "suggestion": {
+          "original_code": "# 2. Print debugging warning\nimport logging\nlogger = logging.getLogger(__name__)\ndef log_user_registration(user_id: str):\n    logger.debug(f\"user {user_id} registered.\")",
+          "replacement_code": "import logging\n\nlogger = logging.getLogger(__name__)\n\ndef log_user_registration(user_id: str) -> None:\n    logger.debug(\"User %s registered.\", user_id)",
+          "explanation": "Removed the redundant comment and used lazy string formatting in the logger, which is more performant as it avoids string interpolation if the debug level is disabled."
+        }
+      }
+    ],
+    "summary": "The code changes are functionally correct and follow good practices (avoiding mutable defaults, using logging). The primary issues are redundant comments that add noise to the codebase. I have suggested minor refactors to improve type safety and logging performance."
+  },
+  {
+    "timestamp": "2026-06-24T19:48:30.644130",
+    "file_path": "/test_ai.py",
+    "issues_count": 1,
+    "categories": {
+      "bug": 1,
+      "security": 0,
+      "performance": 0,
+      "style": 0
+    },
+    "comments": [
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 1,
+        "end_line": 1,
+        "category": "bug",
+        "severity": "critical",
+        "title": "Syntax Error",
+        "explanation": "The code contains a syntax error. 'prin(:)' is not valid Python syntax. It appears to be a typo for 'print()'.",
+        "suggestion": {
+          "original_code": "prin(:)",
+          "replacement_code": "print()",
+          "explanation": "Correcting the typo to the built-in print function."
+        }
+      }
+    ],
+    "summary": "The provided file contains a critical syntax error on the first line. The code is non-functional and must be corrected to valid Python syntax."
+  },
+  {
+    "timestamp": "2026-06-24T19:48:34.932001",
+    "file_path": "/test_ai.py",
+    "issues_count": 1,
+    "categories": {
+      "bug": 1,
+      "security": 0,
+      "performance": 0,
+      "style": 0
+    },
+    "comments": [
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 1,
+        "end_line": 1,
+        "category": "bug",
+        "severity": "critical",
+        "title": "Syntax Error",
+        "explanation": "The code contains a syntax error. 'prin(:)' is not valid Python syntax. It appears to be a typo for 'print()'.",
+        "suggestion": {
+          "original_code": "prin(:)",
+          "replacement_code": "print()",
+          "explanation": "Correcting the typo to the valid Python built-in print function."
+        }
+      }
+    ],
+    "summary": "The provided file contains a critical syntax error on the first line. The code is currently non-executable."
+  },
+  {
+    "timestamp": "2026-06-24T19:48:45.983039",
+    "file_path": "/test_ai.py",
+    "issues_count": 1,
+    "categories": {
+      "bug": 1,
+      "security": 0,
+      "performance": 0,
+      "style": 0
+    },
+    "comments": [
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 1,
+        "end_line": 1,
+        "category": "bug",
+        "severity": "critical",
+        "title": "Syntax Error: Typo in print function",
+        "explanation": "The code contains a typo 'prin' instead of the built-in 'print' function, which will cause a NameError at runtime.",
+        "suggestion": {
+          "original_code": "prin(\"helloworld\")",
+          "replacement_code": "print(\"helloworld\")",
+          "explanation": "Correcting the function name to 'print' ensures the code executes as intended."
+        }
+      }
+    ],
+    "summary": "The provided code contains a critical syntax error due to a typo in the function name. This will prevent the script from executing."
+  },
+  {
+    "timestamp": "2026-06-24T19:53:55.511192",
+    "file_path": "/test_ai.py",
+    "issues_count": 1,
+    "categories": {
+      "bug": 0,
+      "security": 0,
+      "performance": 0,
+      "style": 1
+    },
+    "comments": [
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 1,
+        "end_line": 1,
+        "category": "style",
+        "severity": "info",
+        "title": "Remove debug print statement",
+        "explanation": "The use of print() for debugging is discouraged in production code. It is better to use the standard logging module to allow for configurable log levels and better output management.",
+        "suggestion": {
+          "original_code": "print(\"helloworld\")",
+          "replacement_code": "import logging\n\nlogger = logging.getLogger(__name__)\nlogger.info(\"helloworld\")",
+          "explanation": "Using the logging module provides better control over output, including severity levels and destination handling."
+        }
+      }
+    ],
+    "summary": "The change consists of a single print statement which should be replaced with a proper logging mechanism to adhere to production coding standards."
+  },
+  {
+    "timestamp": "2026-06-25T19:46:22.027043",
+    "file_path": "/test_ai.py",
+    "issues_count": 1,
+    "categories": {
+      "bug": 0,
+      "security": 0,
+      "performance": 0,
+      "style": 1
+    },
+    "comments": [
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 1,
+        "end_line": 1,
+        "category": "style",
+        "severity": "info",
+        "title": "Remove debug print statement",
+        "explanation": "The use of print() for debugging is discouraged in production code. It is better to use the standard logging module to allow for configurable log levels and better output management.",
+        "suggestion": {
+          "original_code": "print(\"helloworld\")",
+          "replacement_code": "import logging\nlogger = logging.getLogger(__name__)\nlogger.info(\"helloworld\")",
+          "explanation": "Using the logging module provides better control over log output, levels, and formatting compared to standard print statements."
+        }
+      }
+    ],
+    "summary": "The code change consists of a single line containing a debug print statement. It is recommended to replace this with the standard logging module for better maintainability and production readiness."
+  },
+  {
+    "timestamp": "2026-06-25T19:48:08.306402",
+    "file_path": "/test_ai.py",
+    "issues_count": 2,
+    "categories": {
+      "bug": 0,
+      "security": 1,
+      "performance": 0,
+      "style": 1
+    },
+    "comments": [
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 17,
+        "end_line": 17,
+        "category": "security",
+        "severity": "critical",
+        "title": "Hardcoded Secret",
+        "explanation": "The API key is hardcoded directly in the source code. This is a security risk as it can be exposed in version control. Use environment variables or a secure secret management service instead.",
+        "suggestion": {
+          "original_code": "API_KEY = \"SUPER_SECRET_KEY_12345\"",
+          "replacement_code": "API_KEY = os.environ.get(\"API_KEY\")",
+          "explanation": "Retrieving the API key from an environment variable prevents sensitive credentials from being committed to the repository."
+        }
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 78,
+        "end_line": 357,
+        "category": "style",
+        "severity": "info",
+        "title": "Leftover Debugging Statements",
+        "explanation": "Multiple print statements are used for debugging. These should be replaced with a proper logging framework to allow for better control over output levels and destinations.",
+        "suggestion": null
+      }
+    ],
+    "summary": "The code contains critical security vulnerabilities, specifically hardcoded credentials, and numerous debugging print statements that should be replaced with a logging framework. Additionally, there are potential runtime errors (e.g., division by zero in main, potential index errors in get_average_age) and SQL injection risks in the database interaction functions."
+  },
+  {
+    "timestamp": "2026-06-25T19:55:33.980105",
+    "file_path": "/test_ai.py",
+    "issues_count": 1,
+    "categories": {
+      "bug": 0,
+      "security": 0,
+      "performance": 0,
+      "style": 1
+    },
+    "comments": [
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 1,
+        "end_line": 1,
+        "category": "style",
+        "severity": "info",
+        "title": "Remove debug print statement",
+        "explanation": "The code contains a leftover print statement used for debugging. In production environments, this should be replaced with a proper logging framework to allow for better control over output levels and destinations.",
+        "suggestion": {
+          "original_code": "print(\"helloworld\")",
+          "replacement_code": "import logging\n\nlogger = logging.getLogger(__name__)\nlogger.info(\"helloworld\")",
+          "explanation": "Using the logging module provides a standard, configurable way to handle application output, which is more robust and maintainable than using print statements."
+        }
+      }
+    ],
+    "summary": "The change consists of a single line containing a debug print statement. It is recommended to replace this with the standard logging module to follow best practices for production-ready code."
+  },
+  {
+    "timestamp": "2026-06-25T19:55:42.489520",
+    "file_path": "/test_ai.py",
+    "issues_count": 5,
+    "categories": {
+      "bug": 1,
+      "security": 3,
+      "performance": 0,
+      "style": 1
+    },
+    "comments": [
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 37,
+        "end_line": 45,
+        "category": "security",
+        "severity": "critical",
+        "title": "SQL Injection Vulnerability",
+        "explanation": "The register_user function uses f-strings to construct SQL queries, which allows for SQL injection attacks. An attacker can manipulate the input to execute arbitrary SQL commands.",
+        "suggestion": {
+          "original_code": "    query = f\"\"\"\n    INSERT INTO users(username,password,age)\n    VALUES('{username}','{password}','{age}')\n    \"\"\"\n\n    cursor.execute(query)",
+          "replacement_code": "    query = \"INSERT INTO users(username, password, age) VALUES(?, ?, ?)\"\n    cursor.execute(query, (username, password, age))",
+          "explanation": "Using parameterized queries (prepared statements) ensures that user inputs are treated as data, not executable code, effectively preventing SQL injection."
+        }
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 56,
+        "end_line": 64,
+        "category": "security",
+        "severity": "critical",
+        "title": "SQL Injection Vulnerability",
+        "explanation": "The login function is vulnerable to SQL injection because it concatenates user-provided strings directly into the SQL query.",
+        "suggestion": {
+          "original_code": "    query = (\n        \"SELECT * FROM users WHERE username='\"\n        + username +\n        \"' AND password='\"\n        + password +\n        \"'\"\n    )\n\n    cursor.execute(query)",
+          "replacement_code": "    query = \"SELECT * FROM users WHERE username=? AND password=?\"\n    cursor.execute(query, (username, password))",
+          "explanation": "Parameterized queries prevent SQL injection by separating the query structure from the data."
+        }
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 105,
+        "end_line": 107,
+        "category": "security",
+        "severity": "critical",
+        "title": "Command Injection Vulnerability",
+        "explanation": "The run_backup function uses subprocess.call with shell=True on user-provided input, allowing arbitrary command execution.",
+        "suggestion": {
+          "original_code": "    command = input(\"Enter backup command: \")\n    subprocess.call(command, shell=True)",
+          "replacement_code": "    # Avoid using shell=True and executing user input directly.\n    # If necessary, use a whitelist of allowed commands.",
+          "explanation": "Executing user input in a shell is extremely dangerous. Avoid shell=True and never pass raw user input to system commands."
+        }
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 78,
+        "end_line": 357,
+        "category": "style",
+        "severity": "info",
+        "title": "Leftover Debug Print Statements",
+        "explanation": "Multiple print statements are used for debugging purposes throughout the code. These should be replaced with a proper logging framework for production environments.",
+        "suggestion": {
+          "original_code": "print(\"Login successful\")",
+          "replacement_code": "import logging\nlogging.info(\"Login successful\")",
+          "explanation": "Using the logging module provides better control over output levels and destinations."
+        }
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 328,
+        "end_line": 328,
+        "category": "bug",
+        "severity": "critical",
+        "title": "AttributeError in sort_users",
+        "explanation": "The sort_users function attempts to access a key 'unknown' which does not exist in the user dictionary, causing a runtime crash.",
+        "suggestion": {
+          "original_code": "    users.sort(key=lambda x: x[\"unknown\"])",
+          "replacement_code": "    users.sort(key=lambda x: x.get(\"username\", \"\"))",
+          "explanation": "Use a valid key or a safe access method like .get() to avoid KeyErrors."
+        }
+      }
+    ],
+    "summary": "The code contains critical security vulnerabilities, including SQL injection and command injection, as well as several logic errors and poor practices. Immediate remediation of the injection vulnerabilities is required to prevent system compromise."
+  },
+  {
+    "timestamp": "2026-06-25T19:57:44.000019",
+    "file_path": "/test_ai.py",
+    "issues_count": 6,
+    "categories": {
+      "bug": 1,
+      "security": 4,
+      "performance": 0,
+      "style": 1
+    },
+    "comments": [
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 39,
+        "end_line": 46,
+        "category": "security",
+        "severity": "critical",
+        "title": "SQL Injection Vulnerability",
+        "explanation": "The register_user function uses f-strings to construct SQL queries, which is highly vulnerable to SQL injection. An attacker can manipulate the input to execute arbitrary SQL commands.",
+        "suggestion": {
+          "original_code": "    query = f\"\"\"\n    INSERT INTO users(username,password,age)\n    VALUES('{username}','{password}','{age}')\n    \"\"\"\n\n    cursor.execute(query)",
+          "replacement_code": "    query = \"INSERT INTO users(username, password, age) VALUES(?, ?, ?)\"\n    cursor.execute(query, (username, password, age))",
+          "explanation": "Using parameterized queries (prepared statements) ensures that user input is treated as data, not as executable code, effectively preventing SQL injection."
+        }
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 56,
+        "end_line": 70,
+        "category": "security",
+        "severity": "critical",
+        "title": "SQL Injection Vulnerability",
+        "explanation": "The login function is vulnerable to SQL injection because it concatenates user input directly into the SQL query string.",
+        "suggestion": {
+          "original_code": "    query = (\n        \"SELECT * FROM users WHERE username='\"\n        + username +\n        \"' AND password='\"\n        + password +\n        \"'\"\n    )\n\n    cursor.execute(query)",
+          "replacement_code": "    query = \"SELECT * FROM users WHERE username=? AND password=?\"\n    cursor.execute(query, (username, password))",
+          "explanation": "Use parameterized queries to safely handle user input in SQL statements."
+        }
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 232,
+        "end_line": 233,
+        "category": "security",
+        "severity": "critical",
+        "title": "Command Injection Vulnerability",
+        "explanation": "The run_backup function uses subprocess.call with shell=True on user-provided input, which allows for arbitrary command execution.",
+        "suggestion": {
+          "original_code": "    command = input(\"Enter backup command: \")\n    subprocess.call(command, shell=True)",
+          "replacement_code": "    # Avoid executing arbitrary shell commands. If necessary, use a predefined list of allowed commands.\n    # subprocess.run([\"/usr/bin/backup_script.sh\"], check=True)",
+          "explanation": "Never pass unsanitized user input to a shell. Use a whitelist of allowed commands or avoid shell execution entirely."
+        }
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 105,
+        "end_line": 106,
+        "category": "security",
+        "severity": "critical",
+        "title": "Insecure Deserialization",
+        "explanation": "The load_pickle function uses pickle.load on untrusted input, which can lead to arbitrary code execution.",
+        "suggestion": {
+          "original_code": "    f = open(filename, \"rb\")\n    data = pickle.load(f)",
+          "replacement_code": "    # Use a safe format like JSON instead of pickle.\n    import json\n    with open(filename, \"r\") as f:\n        data = json.load(f)",
+          "explanation": "Pickle is inherently insecure. Use safer serialization formats like JSON for data exchange."
+        }
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 78,
+        "end_line": 357,
+        "category": "style",
+        "severity": "info",
+        "title": "Leftover Debug Print Statements",
+        "explanation": "Multiple print statements are used for debugging throughout the code. These should be replaced with a proper logging framework for production code.",
+        "suggestion": {
+          "original_code": "print(\"Login successful\")",
+          "replacement_code": "import logging\nlogging.info(\"Login successful\")",
+          "explanation": "Logging provides better control over output levels and destinations compared to print statements."
+        }
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 29,
+        "end_line": 30,
+        "category": "bug",
+        "severity": "warning",
+        "title": "Resource Leak",
+        "explanation": "The database connection is opened but never closed, which can lead to connection pool exhaustion.",
+        "suggestion": {
+          "original_code": "    conn = connect_db()\n    cursor = conn.cursor()\n\n    cursor.execute(\"\"\"\n    CREATE TABLE IF NOT EXISTS users(\n        id INTEGER PRIMARY KEY,\n        username TEXT,\n        password TEXT,\n        age INTEGER\n    )\n    \"\"\")\n\n    conn.commit()",
+          "replacement_code": "    with connect_db() as conn:\n        cursor = conn.cursor()\n        cursor.execute(\"\"\"\n        CREATE TABLE IF NOT EXISTS users(\n            id INTEGER PRIMARY KEY,\n            username TEXT,\n            password TEXT,\n            age INTEGER\n        )\n        \"\"\")\n        conn.commit()",
+          "explanation": "Using a context manager ensures the connection is closed automatically."
+        }
+      }
+    ],
+    "summary": "The codebase contains critical security vulnerabilities, including SQL injection, command injection, and insecure deserialization. There are also resource leaks (unclosed database connections) and poor coding practices such as the use of hardcoded secrets and debug print statements. Immediate refactoring is required to secure the application."
+  },
+  {
+    "timestamp": "2026-06-25T19:58:12.267200",
+    "file_path": "/test_ai.py",
+    "issues_count": 11,
+    "categories": {
+      "bug": 6,
+      "security": 4,
+      "performance": 0,
+      "style": 1
+    },
+    "comments": [
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 15,
+        "end_line": 15,
+        "category": "security",
+        "severity": "critical",
+        "title": "Hardcoded API Key",
+        "explanation": "Storing API keys directly in the source code is a major security risk. If this file is committed to version control, the key will be exposed to anyone with access to the repository.",
+        "suggestion": null
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 34,
+        "end_line": 34,
+        "category": "bug",
+        "severity": "critical",
+        "title": "Database Connection Leak",
+        "explanation": "The database connection is opened but never closed, which can lead to resource exhaustion over time.",
+        "suggestion": null
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 56,
+        "end_line": 56,
+        "category": "security",
+        "severity": "critical",
+        "title": "Weak Cryptography",
+        "explanation": "MD5 is cryptographically broken and should not be used for password hashing. Use a strong, salted hashing algorithm like Argon2 or bcrypt.",
+        "suggestion": null
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 61,
+        "end_line": 65,
+        "category": "bug",
+        "severity": "critical",
+        "title": "Index Out of Bounds",
+        "explanation": "The loop range 'len(users) + 1' will cause an IndexError when accessing 'users[i]' because the index will exceed the list bounds.",
+        "suggestion": null
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 74,
+        "end_line": 74,
+        "category": "bug",
+        "severity": "warning",
+        "title": "Potential Index Error",
+        "explanation": "Returning 'users[0]' when a user is not found will raise an IndexError if the 'users' list is empty.",
+        "suggestion": null
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 90,
+        "end_line": 90,
+        "category": "security",
+        "severity": "critical",
+        "title": "Arbitrary Command Injection",
+        "explanation": "Using 'os.system' with unsanitized input allows for arbitrary command execution, which is a critical security vulnerability.",
+        "suggestion": null
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 94,
+        "end_line": 95,
+        "category": "security",
+        "severity": "critical",
+        "title": "Insecure Deserialization",
+        "explanation": "Using 'pickle.load' on untrusted data can lead to arbitrary code execution. Never deserialize data from untrusted sources.",
+        "suggestion": null
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 116,
+        "end_line": 116,
+        "category": "bug",
+        "severity": "critical",
+        "title": "Undefined Variable",
+        "explanation": "The variable 'grandTotal' is used but not defined; it should be 'grand_total'.",
+        "suggestion": null
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 248,
+        "end_line": 248,
+        "category": "bug",
+        "severity": "critical",
+        "title": "Unbound Local Variable",
+        "explanation": "The variable 'salary' is only defined if 'hours > 40'. If 'hours <= 40', the function will raise an UnboundLocalError.",
+        "suggestion": null
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 252,
+        "end_line": 252,
+        "category": "bug",
+        "severity": "critical",
+        "title": "KeyError in Sort",
+        "explanation": "The key 'unknown' does not exist in the user dictionaries, which will cause a KeyError during sorting.",
+        "suggestion": null
+      },
+      {
+        "file_path": "/test_ai.py",
+        "start_line": 67,
+        "end_line": 346,
+        "category": "style",
+        "severity": "info",
+        "title": "Consolidated Debugging Statements",
+        "explanation": "Multiple print statements used for debugging were found at lines 67, 239, 242, 245, 282, 303, 304, 327, 329, 331, 336, 338, 340, 344, 346. Use a proper logging framework instead.",
+        "suggestion": null
+      }
+    ],
+    "summary": "The code contains several critical security vulnerabilities, including hardcoded secrets, insecure deserialization, and command injection. There are also multiple logic errors, such as index out-of-bounds, undefined variables, and resource leaks (unclosed database connections). The code requires significant refactoring to follow secure coding practices and improve robustness."
+  }
+]

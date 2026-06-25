@@ -1,0 +1,66 @@
+[
+  {
+    "timestamp": "2026-06-24T19:47:54.894865",
+    "file_path": "/test_ai.py",
+    "comment_title": "Mutable default argument",
+    "code_snippet": "def add_user(user_id: str, history=[]):",
+    "action_type": "accept",
+    "explanation": "Developer accepted refactor suggestion in DevSync IDE."
+  },
+  {
+    "timestamp": "2026-06-24T19:47:56.654762",
+    "file_path": "/test_ai.py",
+    "comment_title": "Remove print statement",
+    "code_snippet": "print(f\"Debug: user {user_id} registered.\")",
+    "action_type": "accept",
+    "explanation": "Developer accepted refactor suggestion in DevSync IDE."
+  },
+  {
+    "timestamp": "2026-06-24T19:48:07.489375",
+    "file_path": "/test_ai.py",
+    "comment_title": "Undefined variable in logging statement",
+    "code_snippet": "logger.debug(f\"user {user_id} registered.\")",
+    "action_type": "accept",
+    "explanation": "Developer accepted refactor suggestion in DevSync IDE."
+  },
+  {
+    "timestamp": "2026-06-24T19:48:49.184338",
+    "file_path": "/test_ai.py",
+    "comment_title": "Syntax Error: Typo in print function",
+    "code_snippet": "prin(\"helloworld\")",
+    "action_type": "accept",
+    "explanation": "Developer accepted refactor suggestion in DevSync IDE."
+  },
+  {
+    "timestamp": "2026-06-25T19:48:37.460536",
+    "file_path": "/test_ai.py",
+    "comment_title": "Leftover Debugging Statements",
+    "code_snippet": "Multiple print statements are used for debugging. These should be replaced with a proper logging framework to allow for better control over output levels and destinations.",
+    "action_type": "dismiss",
+    "explanation": "Dismissed by developer in DevSync IDE."
+  },
+  {
+    "timestamp": "2026-06-25T19:57:57.278410",
+    "file_path": "/test_ai.py",
+    "comment_title": "SQL Injection Vulnerability",
+    "code_snippet": "    query = f\"\"\"\n    INSERT INTO users(username,password,age)\n    VALUES('{username}','{password}','{age}')\n    \"\"\"\n\n    cursor.execute(query)",
+    "action_type": "accept",
+    "explanation": "Developer accepted refactor suggestion in DevSync IDE."
+  },
+  {
+    "timestamp": "2026-06-25T19:57:58.866991",
+    "file_path": "/test_ai.py",
+    "comment_title": "Command Injection Vulnerability",
+    "code_snippet": "    command = input(\"Enter backup command: \")\n    subprocess.call(command, shell=True)",
+    "action_type": "accept",
+    "explanation": "Developer accepted refactor suggestion in DevSync IDE."
+  },
+  {
+    "timestamp": "2026-06-25T19:58:00.017417",
+    "file_path": "/test_ai.py",
+    "comment_title": "SQL Injection Vulnerability",
+    "code_snippet": "    query = (\n        \"SELECT * FROM users WHERE username='\"\n        + username +\n        \"' AND password='\"\n        + password +\n        \"'\"\n    )\n\n    cursor.execute(query)",
+    "action_type": "accept",
+    "explanation": "Developer accepted refactor suggestion in DevSync IDE."
+  }
+]
