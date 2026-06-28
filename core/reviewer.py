@@ -1,7 +1,7 @@
 import os
 import json
 from typing import List, Dict, Any, Optional
-from core.models import ReviewResult, ReviewComment, IssueCategory, Severity, CodeSuggestion
+from core.models import ReviewResult, ReviewComment, IssueCategory, Severity, CodeSuggestion, SearchResult
 
 # We will try to import the genai client from the new google-genai SDK
 try:

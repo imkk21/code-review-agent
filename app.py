@@ -4,20 +4,47 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
-from core.diff_parser import parse_diff
-from core.static_analysis import analyze_file
-from core.reviewer import CodeReviewer
-from core.models import ReviewResult
-from core.rag_orchestrator import RAGOrchestrator
-from core.slack_client import SlackNotifier
-from core.security import verify_signature
-from core.github_client import GitHubClient
-from core.config import load_env
 
-# Load environment variables from .env file
-load_env()
+# Initialize placeholder variables for safety
+reviewer = None
+history_file = "review_history.json"
+feedback_file = "feedback_ledger.json"
+startup_error = None
+ChatAssistant = None
+ChatResponse = None
+
+try:
+    from core.diff_parser import parse_diff
+    from core.static_analysis import analyze_file
+    from core.reviewer import CodeReviewer
+    from core.models import ReviewResult
+    from core.rag_orchestrator import RAGOrchestrator
+    from core.slack_client import SlackNotifier
+    from core.security import verify_signature
+    from core.github_client import GitHubClient
+    from core.config import load_env
+    
+    # Check if assistant is available (e.g. core/assistant.py exists)
+    try:
+        from core.assistant import ChatAssistant, ChatResponse
+    except ImportError:
+        # Define dummy placeholder for route definition safety
+        class DummyChatResponse(BaseModel):
+            response: str
+            suggestion: Optional[Any] = None
+        ChatResponse = DummyChatResponse
+        ChatAssistant = None
+
+    # Load environment variables from .env file
+    load_env()
+
+    # Initialize reviewer
+    reviewer = CodeReviewer()
+except Exception as e:
+    import traceback
+    startup_error = traceback.format_exc()
 
 app = FastAPI(
     title="Apex AI",
@@ -34,10 +61,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize reviewer
-reviewer = CodeReviewer()
-history_file = "review_history.json"
-feedback_file = "feedback_ledger.json"
+# Middleware to intercept and report startup errors
+@app.middleware("http")
+async def check_startup_error(request: Request, call_next):
+    if startup_error:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "Startup failed",
+                "traceback": startup_error
+            }
+        )
+    return await call_next(request)
 
 class ReviewRequest(BaseModel):
     file_path: str
@@ -46,6 +81,14 @@ class ReviewRequest(BaseModel):
 class CodeReviewRequest(BaseModel):
     code: str
     file_path: str
+    model_name: Optional[str] = "gemini-3.1-flash-lite"
+
+class ChatRequest(BaseModel):
+    message: str
+    chat_history: List[Dict[str, str]] = []
+    file_path: Optional[str] = None
+    file_content: Optional[str] = None
+    workspace_files: Optional[List[str]] = None
     model_name: Optional[str] = "gemini-3.1-flash-lite"
 
 class FeedbackRequest(BaseModel):
@@ -269,6 +312,24 @@ def review_code_snippet(payload: CodeReviewRequest):
         
         save_review_run(payload.file_path, result)
         
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/chat", response_model=ChatResponse)
+def chat_with_agent(payload: ChatRequest):
+    """
+    Exposes interactive coding chat assistant to explain code or suggest agentic edits.
+    """
+    try:
+        assistant = ChatAssistant(model_name=payload.model_name)
+        result = assistant.generate_chat_response(
+            message=payload.message,
+            chat_history=payload.chat_history,
+            file_path=payload.file_path,
+            file_content=payload.file_content,
+            workspace_files=payload.workspace_files
+        )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
