@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel
 
 # Initialize placeholder variables for safety
@@ -156,14 +156,7 @@ def save_review_run(file_path: str, result: ReviewResult):
 
 @app.get("/")
 def read_root():
-    return {
-        "status": "healthy",
-        "agent": "Apex AI",
-        "gemini_api_configured": bool(os.environ.get("GEMINI_API_KEY")),
-        "slack_api_configured": bool(os.environ.get("SLACK_WEBHOOK_URL")),
-        "github_webhook_secret_configured": bool(os.environ.get("GITHUB_WEBHOOK_SECRET")),
-        "message": "Send POST requests to /review-file or /webhook to test code reviews. Access the dashboard at /dashboard"
-    }
+    return RedirectResponse(url="/dashboard")
 
 @app.get("/dashboard", response_class=HTMLResponse)
 def get_dashboard():
